@@ -1,0 +1,56 @@
+name: Release
+
+# Publishes a Foundry-ready release whenever a version tag (e.g. v1.0.0) is pushed.
+# The tag drives module.json's version, and the release assets (module.json +
+# module.zip) are what Foundry's package manager installs from.
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Derive version from tag
+        id: version
+        run: echo "version=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
+
+      - name: Stamp version + release URLs into module.json
+        env:
+          REPO: ${{ github.repository }}
+          VER: ${{ steps.version.outputs.version }}
+        run: |
+          node -e '
+            const fs = require("fs");
+            const m = JSON.parse(fs.readFileSync("module.json", "utf8"));
+            const repo = process.env.REPO, ver = process.env.VER;
+            m.version = ver;
+            m.url = `https://github.com/${repo}`;
+            // manifest tracks "latest" so Foundry sees new releases automatically;
+            // download is pinned to THIS release so installs are reproducible.
+            m.manifest = `https://github.com/${repo}/releases/latest/download/module.json`;
+            m.download = `https://github.com/${repo}/releases/download/v${ver}/module.zip`;
+            fs.writeFileSync("module.json", JSON.stringify(m, null, 2) + "\n");
+          '
+
+      - name: Build module.zip
+        run: |
+          zip -r module.zip \
+            module.json \
+            scripts applications templates styles lang \
+            README.md LICENSE
+
+      - name: Publish release with assets
+        uses: softprops/action-gh-release@v2
+        with:
+          name: ${{ github.ref_name }}
+          files: |
+            module.json
+            module.zip

@@ -1,0 +1,141 @@
+/* Manual-override toggle button in the Combat Tracker */
+.obs-scene-switcher-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35em;
+  width: 100%;
+  margin: 0 0 0.35rem 0;
+  padding: 0.35rem 0.5rem;
+  font-size: var(--font-size-13, 0.8rem);
+  line-height: 1;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.obs-scene-switcher-toggle.active {
+  border: 1px solid #2e7d32;
+  background: rgba(46, 125, 50, 0.18);
+  color: #7bd67f;
+}
+
+.obs-scene-switcher-toggle.inactive {
+  border: 1px solid #8a8a8a;
+  background: rgba(120, 120, 120, 0.15);
+  color: #cfcfcf;
+}
+
+.obs-scene-switcher-toggle.connecting {
+  border: 1px solid #b8860b;
+  background: rgba(184, 134, 11, 0.18);
+  color: #e0b84a;
+}
+
+/* Sync is ON but OBS isn't working — flash red to alert the DM. */
+.obs-scene-switcher-toggle.error {
+  border: 1px solid #b71c1c;
+  color: #fff;
+  animation: obs-error-flash 1.1s ease-in-out infinite;
+}
+
+@keyframes obs-error-flash {
+  0%, 100% { background: rgba(183, 28, 28, 0.25); }
+  50%      { background: rgba(183, 28, 28, 0.85); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .obs-scene-switcher-toggle.error {
+    animation: none;
+    background: rgba(183, 28, 28, 0.6);
+  }
+}
+
+.obs-scene-switcher-toggle i {
+  font-size: 0.9em;
+}
+
+/* Password field highlight in the Settings window on auth failure. */
+input.obs-auth-error {
+  border: 1px solid #b71c1c !important;
+  box-shadow: 0 0 4px rgba(183, 28, 28, 0.8);
+}
+
+.obs-auth-warning {
+  margin-top: 0.35rem;
+}
+
+/* Mapping config application */
+.obs-scene-switcher.mapping-config .obs-mapping-config .hint {
+  font-size: var(--font-size-12, 0.75rem);
+  opacity: 0.8;
+  margin: 0.25rem 0 0.5rem 0;
+}
+
+.obs-scene-switcher.mapping-config fieldset {
+  border: 1px solid var(--color-border-light-tertiary, #7a7971);
+  border-radius: 5px;
+  padding: 0.5rem 0.75rem 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
+.obs-scene-switcher.mapping-config legend {
+  font-weight: bold;
+  padding: 0 0.35rem;
+}
+
+.obs-scene-switcher.mapping-config .actor-search-bar {
+  position: relative;
+  display: flex;
+  align-items: center;
+  margin-bottom: 0.5rem;
+}
+
+.obs-scene-switcher.mapping-config .actor-search-bar i {
+  position: absolute;
+  left: 0.5rem;
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+.obs-scene-switcher.mapping-config .actor-search {
+  width: 100%;
+  padding-left: 1.75rem;
+}
+
+.obs-scene-switcher.mapping-config .actor-list {
+  max-height: 340px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  padding-right: 0.25rem;
+}
+
+.obs-scene-switcher.mapping-config .actor-row {
+  display: grid;
+  grid-template-columns: 32px minmax(120px, 1fr) minmax(140px, 1.4fr);
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.obs-scene-switcher.mapping-config .actor-thumb {
+  width: 32px;
+  height: 32px;
+  object-fit: cover;
+  border: none;
+  border-radius: 3px;
+}
+
+.obs-scene-switcher.mapping-config .actor-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.obs-scene-switcher.mapping-config .actor-row input {
+  min-width: 0;
+}
+
+.obs-scene-switcher.mapping-config .empty {
+  font-style: italic;
+}

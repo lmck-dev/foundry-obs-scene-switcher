@@ -1,0 +1,65 @@
+<div class="obs-mapping-config">
+
+  {{#if hasSceneOptions}}
+  <datalist id="obs-scene-names">
+    {{#each sceneOptions}}
+    <option value="{{this}}"></option>
+    {{/each}}
+  </datalist>
+  {{/if}}
+
+  <p class="hint">{{localize "foundry-obs-scene-switcher.config.intro"}}</p>
+
+  <fieldset>
+    <legend>{{localize "foundry-obs-scene-switcher.config.globalScenes"}}</legend>
+
+    <div class="form-group">
+      <label for="obs-exploration-scene">{{localize "foundry-obs-scene-switcher.config.explorationScene"}}</label>
+      <div class="form-fields">
+        <input type="text" id="obs-exploration-scene" name="explorationScene"
+               value="{{explorationScene}}" list="{{#if hasSceneOptions}}obs-scene-names{{/if}}"
+               placeholder="{{localize 'foundry-obs-scene-switcher.config.scenePlaceholder'}}" />
+      </div>
+      <p class="hint">{{localize "foundry-obs-scene-switcher.config.explorationHint"}}</p>
+    </div>
+
+    <div class="form-group">
+      <label for="obs-dm-scene">{{localize "foundry-obs-scene-switcher.config.dmFallbackScene"}}</label>
+      <div class="form-fields">
+        <input type="text" id="obs-dm-scene" name="dmFallbackScene"
+               value="{{dmFallbackScene}}" list="{{#if hasSceneOptions}}obs-scene-names{{/if}}"
+               placeholder="{{localize 'foundry-obs-scene-switcher.config.scenePlaceholder'}}" />
+      </div>
+      <p class="hint">{{localize "foundry-obs-scene-switcher.config.dmFallbackHint"}}</p>
+    </div>
+  </fieldset>
+
+  <fieldset>
+    <legend>{{localize "foundry-obs-scene-switcher.config.actorMappings"}}</legend>
+    <p class="hint">{{localize "foundry-obs-scene-switcher.config.actorMappingsHint"}}</p>
+
+    {{#if actors.length}}
+    <div class="actor-search-bar">
+      <i class="fas fa-search"></i>
+      <input type="search" class="actor-search" autocomplete="off"
+             placeholder="{{localize 'foundry-obs-scene-switcher.config.searchPlaceholder'}}"
+             aria-label="{{localize 'foundry-obs-scene-switcher.config.searchPlaceholder'}}" />
+    </div>
+    <div class="actor-list">
+      {{#each actors}}
+      <div class="actor-row" data-name="{{this.searchName}}">
+        <img class="actor-thumb" src="{{this.img}}" alt="{{this.name}}" />
+        <label class="actor-name" title="{{this.name}}">{{this.name}}</label>
+        <input type="text" name="mapping.{{this.id}}" value="{{this.scene}}"
+               list="{{#if ../hasSceneOptions}}obs-scene-names{{/if}}"
+               placeholder="{{localize 'foundry-obs-scene-switcher.config.noMapping'}}" />
+      </div>
+      {{/each}}
+    </div>
+    <p class="hint actor-search-empty" hidden>{{localize "foundry-obs-scene-switcher.config.searchNoMatch"}}</p>
+    {{else}}
+    <p class="hint empty">{{localize "foundry-obs-scene-switcher.config.noActors"}}</p>
+    {{/if}}
+  </fieldset>
+
+</div>
