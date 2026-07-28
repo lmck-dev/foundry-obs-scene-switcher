@@ -25,10 +25,42 @@ styles/module.css · lang/en.json
 
 ## Build / test
 
-There is **no build step and no test suite**. A suite of 20 Node unit tests was
-written and run during initial development but was never committed — no test
-file has ever existed in this repository, so that suite is gone and cannot be
-re-run. Verify claims about test coverage before repeating them.
+There is **no build step**. Tests use `node:test` only — no dependencies, no
+install step.
+
+```bash
+npm test          # node --test --test-timeout=5000 "test/**/*.test.js"
+```
+
+59 tests covering `obs-client.js` and `scene-sync.js`, run in CI on every push
+and PR (`.github/workflows/test.yml`).
+
+- `test/helpers/mock-websocket.js` — a scriptable WebSocket that lets a test
+  drive the obs-websocket handshake frame by frame.
+- `test/helpers/foundry-mock.js` — the slice of `game` / `canvas` the module
+  reads. The source touches these at call time, not import time, so installing
+  globals before invoking is enough.
+
+Things worth knowing before editing the suite:
+
+- **`--test-timeout` is not optional.** Several tests mock `setTimeout` via
+  `t.mock.timers`, which disables the client's own 10s and 8s guards. Without
+  the flag, a promise that never settles hangs the run forever instead of
+  failing. A timed-out test is reported as **cancelled**, not failed — but the
+  process still exits non-zero, so CI catches it.
+- The DOM-facing modules (`override-button.js`, `settings-highlight.js`,
+  `applications/mapping-config.js`) are untested; they need a DOM and are thin
+  wiring over the logic that is tested.
+- `scene-sync.js` keeps a module-level debounce cache. Call `resetSceneCache()`
+  in `beforeEach` or one test's last scene silently suppresses the next test's
+  switch.
+
+The suite was mutation-tested: 15 deliberate breakages (wrong auth ordering,
+inverted combat check, dropped debounce reset, removed stale-socket guard, …)
+were each confirmed to fail it. If you add tests, check they can actually fail.
+
+`package.json` exists only so Node treats `scripts/*.js` as ES modules. Foundry
+ignores it, and the release zip excludes it.
 
 ## Current state
 

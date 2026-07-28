@@ -1,0 +1,24 @@
+name: Test
+
+# The module is publicly installable, so a regression reaches users directly.
+# Run the suite on every push and PR, and before any release tag is cut.
+
+on:
+  push:
+    branches: ["**"]
+    tags: ["v*"]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      # No dependencies to install — the suite uses node:test only.
+      - name: Run tests
+        run: npm test
