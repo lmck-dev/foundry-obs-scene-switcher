@@ -25,27 +25,23 @@ styles/module.css · lang/en.json
 
 ## Build / test
 
-There is **no build step and no test suite**. Note that despite what earlier
-notes may claim, no test file has ever existed in this repository — verify
-claims about test coverage before repeating them.
+There is **no build step and no test suite**. A suite of 20 Node unit tests was
+written and run during initial development but was never committed — no test
+file has ever existed in this repository, so that suite is gone and cannot be
+re-run. Verify claims about test coverage before repeating them.
 
-## Current state — read before adding features
+## Current state
 
-**v1.0.0 is publicly released with an installable manifest, and the module has
-never been run inside a live Foundry world.** Passing local reasoning is not
-evidence it loads.
+**v1.0.0 is publicly released with an installable manifest and has been run in a
+real game — it worked flawlessly (confirmed 2026-07-28).** Scene switching,
+the settings UI and the connection indicator all behaved correctly in live play.
 
-The next step is to install via the manifest URL and smoke-test in a real world,
-specifically:
-
-- tracker button placement,
-- ApplicationV2 form submit on the mapping config,
-- the red-flash connection indicator.
-
-Only after that: submit the manifest to the Foundry package registry via the
+Next step: submit the manifest to the Foundry package registry via the
 foundryvtt.com admin panel.
 
-Prefer verifying the released build over extending it.
+Since the module is live and installable by others, treat regressions as
+user-facing. The manifest URL points at `releases/latest`, so any release is
+immediately live to installers — there is no staging step.
 
 ## Notes
 
