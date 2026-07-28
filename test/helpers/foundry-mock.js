@@ -5,7 +5,27 @@
  * time, so installing these before invoking a function is enough — no module
  * re-import or loader hooks needed.
  */
+import { readFileSync } from "node:fs";
 import { SETTINGS } from "../../scripts/constants.js";
+
+/**
+ * The module's real translations, so tests assert the strings a user actually
+ * sees. Loading the shipped file (rather than inventing strings) means a
+ * missing or misspelled key fails a test instead of silently rendering raw
+ * "module.button.on" text in the UI.
+ */
+const TRANSLATIONS = JSON.parse(
+  readFileSync(new URL("../../lang/en.json", import.meta.url), "utf8")
+);
+
+/** Foundry's i18n surface: localize looks up, format interpolates {tokens}. */
+const i18n = {
+  localize: (key) => TRANSLATIONS[key] ?? key,
+  format: (key, data = {}) =>
+    (TRANSLATIONS[key] ?? key).replace(/\{(\w+)\}/g, (match, token) =>
+      token in data ? String(data[token]) : match
+    )
+};
 
 /**
  * A combatant / token stand-in.
@@ -54,6 +74,7 @@ export function installFoundry({
   globalThis.game = {
     user: { isGM },
     combat,
+    i18n,
     settings: {
       get: (_moduleId, key) => store.get(key),
       set: (_moduleId, key, value) => {

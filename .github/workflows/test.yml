@@ -18,7 +18,13 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
+          cache: npm
 
-      # No dependencies to install — the suite uses node:test only.
+      # happy-dom is the only dependency, and it is dev-only: the shipped
+      # module stays dependency-free (the release zip excludes package.json
+      # and node_modules).
+      - name: Install dev dependencies
+        run: npm ci
+
       - name: Run tests
         run: npm test

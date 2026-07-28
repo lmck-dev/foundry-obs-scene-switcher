@@ -5,5 +5,8 @@
   "description": "Dev-only manifest. Foundry loads this module via module.json and ignores this file; it exists so Node treats scripts/*.js as ES modules for the test suite. It is deliberately excluded from the release zip (see .github/workflows/release.yml).",
   "scripts": {
     "test": "node --test --test-timeout=5000 \"test/**/*.test.js\""
+  },
+  "devDependencies": {
+    "happy-dom": "^20.11.1"
   }
 }
