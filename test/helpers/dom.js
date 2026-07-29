@@ -5,7 +5,17 @@
  * implements the tree in pure JS so `document.createElement`, `querySelector`
  * and event dispatch behave as they do in a browser.
  */
+import { readFileSync } from "node:fs";
 import { Window } from "happy-dom";
+
+const OVERLAY_HTML = readFileSync(
+  new URL("../../overlay/overlay.html", import.meta.url),
+  "utf8"
+);
+const OVERLAY_JS = readFileSync(
+  new URL("../../overlay/overlay.js", import.meta.url),
+  "utf8"
+);
 
 /**
  * Install a fresh document as the globals the source reads.
@@ -64,6 +74,47 @@ export function asJQuery(element) {
 /** Fire a real click event, as a user would. */
 export function click(element) {
   element.dispatchEvent(new window.Event("click", { bubbles: true, cancelable: true }));
+}
+
+/**
+ * Load the real overlay page into a happy-dom window.
+ *
+ * The markup comes out of the shipped overlay.html rather than being restated
+ * here, so a class the script looks for but the page stopped providing fails a
+ * test instead of silently rendering an empty card on stream.
+ *
+ * overlay.js is a classic script — it has no exports to import — so it is
+ * evaluated with `window` and `document` handed in as the page would supply
+ * them.
+ */
+export function loadOverlayPage() {
+  const dom = installDom();
+
+  const body = OVERLAY_HTML.match(/<body[^>]*>([\s\S]*?)<\/body>/i)[1].replace(
+    /<script[\s\S]*?<\/script>/gi,
+    ""
+  );
+  dom.document.body.innerHTML = body;
+
+  new Function("window", "document", OVERLAY_JS)(dom.window, dom.document);
+
+  // The script self-mounts on DOMContentLoaded if the document is still
+  // parsing; happy-dom's readyState varies, so nudge it when it has not run.
+  if (!dom.window.OBSOverlay.instance) {
+    dom.document.dispatchEvent(new dom.window.Event("DOMContentLoaded"));
+  }
+
+  return {
+    ...dom,
+    overlay: dom.window.OBSOverlay,
+    instance: dom.window.OBSOverlay.instance,
+    root: dom.document.getElementById("obs-overlay-root")
+  };
+}
+
+/** Dispatch a payload the way obs-browser does: a CustomEvent on `window`. */
+export function emitOverlayEvent(dom, eventName, detail) {
+  dom.window.dispatchEvent(new dom.window.CustomEvent(eventName, { detail }));
 }
 
 /**

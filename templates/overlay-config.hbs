@@ -1,0 +1,67 @@
+<div class="obs-overlay-config">
+
+  <p class="hint">{{localize "foundry-obs-scene-switcher.overlay.intro"}}</p>
+
+  <fieldset>
+    <legend>{{localize "foundry-obs-scene-switcher.overlay.setup"}}</legend>
+
+    <div class="form-group">
+      <label for="obs-overlay-url">{{localize "foundry-obs-scene-switcher.overlay.url"}}</label>
+      <div class="form-fields">
+        <input type="text" id="obs-overlay-url" class="overlay-url" readonly
+               value="{{browserSourceUrl}}" />
+      </div>
+      <p class="hint">{{localize "foundry-obs-scene-switcher.overlay.urlHint"}}</p>
+    </div>
+  </fieldset>
+
+  <fieldset>
+    <legend>{{localize "foundry-obs-scene-switcher.overlay.rows"}}</legend>
+    <p class="hint">{{localize "foundry-obs-scene-switcher.overlay.rowsHint"}}</p>
+
+    <div class="overlay-fields">
+      <div class="overlay-fields-head">
+        <span></span>
+        <span>{{localize "foundry-obs-scene-switcher.overlay.columnPc"}}</span>
+        <span>{{localize "foundry-obs-scene-switcher.overlay.columnNpc"}}</span>
+      </div>
+      {{#each fields}}
+      <div class="overlay-field">
+        <span class="overlay-field-label">{{localize this.label}}</span>
+        <input type="checkbox" name="fields.{{this.key}}" {{checked this.pc}}
+               aria-label="{{localize this.label}}: {{localize 'foundry-obs-scene-switcher.overlay.columnPc'}}" />
+        <input type="checkbox" name="npcFields.{{this.key}}" {{checked this.npc}}
+               aria-label="{{localize this.label}}: {{localize 'foundry-obs-scene-switcher.overlay.columnNpc'}}" />
+      </div>
+      {{/each}}
+    </div>
+  </fieldset>
+
+  <fieldset>
+    <legend>{{localize "foundry-obs-scene-switcher.overlay.privacy"}}</legend>
+
+    <div class="form-group">
+      <label for="obs-overlay-npcs">{{localize "foundry-obs-scene-switcher.overlay.npcs.label"}}</label>
+      <div class="form-fields">
+        <select id="obs-overlay-npcs" name="npcPolicy">
+          {{selectOptions npcChoices selected=npcPolicy localize=true}}
+        </select>
+      </div>
+      <p class="hint">{{localize "foundry-obs-scene-switcher.overlay.npcs.hint"}}</p>
+    </div>
+  </fieldset>
+
+  <fieldset>
+    <legend>{{localize "foundry-obs-scene-switcher.overlay.advanced"}}</legend>
+
+    <div class="form-group">
+      <label for="obs-overlay-event">{{localize "foundry-obs-scene-switcher.overlay.eventName"}}</label>
+      <div class="form-fields">
+        <input type="text" id="obs-overlay-event" name="eventName"
+               value="{{eventName}}" placeholder="{{defaultEventName}}" />
+      </div>
+      <p class="hint">{{localize "foundry-obs-scene-switcher.overlay.eventNameHint"}}</p>
+    </div>
+  </fieldset>
+
+</div>

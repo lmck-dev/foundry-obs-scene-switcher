@@ -53,6 +53,41 @@ export function resolveScene() {
   return getSetting(SETTINGS.dmFallbackScene) || null;
 }
 
+/**
+ * Whether this token/combatant's actor has a scene of its own.
+ *
+ * The overlay reads this as an opt-in signal: an NPC the GM has deliberately
+ * given a scene is one they intend to feature.
+ */
+export function hasSceneMapping(doc) {
+  const mappings = getSetting(SETTINGS.sceneMappings) ?? {};
+  return Boolean(lookupMapping(mappings, doc));
+}
+
+/**
+ * Who the table's attention is on right now: the GM's selected token, else the
+ * combatant whose turn it is. Returns a Token or Combatant, or null.
+ *
+ * Deliberately *not* folded into resolveScene(). That function falls through to
+ * the next candidate when a mapping is missing, because an unmapped actor still
+ * needs some scene; the overlay has no such need — an unmapped selected token is
+ * still the character the GM is looking at, and showing the combatant instead
+ * would be wrong. The two answer different questions, so they resolve
+ * separately.
+ *
+ * Unlike scene resolution this also answers outside combat, so clicking a token
+ * during exploration puts that character on stream.
+ */
+export function resolveSubject() {
+  const controlled = canvas?.tokens?.controlled ?? [];
+  if (controlled.length) return controlled[0];
+
+  const combat = game.combat;
+  if (combat?.started && combat.combatant) return combat.combatant;
+
+  return null;
+}
+
 // Remember the last scene we pushed so we don't spam identical switches.
 let lastScene = null;
 

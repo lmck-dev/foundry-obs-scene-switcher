@@ -6,7 +6,13 @@
  * re-import or loader hooks needed.
  */
 import { readFileSync } from "node:fs";
-import { SETTINGS } from "../../scripts/constants.js";
+import {
+  SETTINGS,
+  OVERLAY_FIELDS,
+  OVERLAY_NPC_FIELDS,
+  DEFAULT_OVERLAY_EVENT,
+  NPC_POLICY
+} from "../../scripts/constants.js";
 
 /**
  * The module's real translations, so tests assert the strings a user actually
@@ -48,6 +54,34 @@ export function makeCombat({ started = true, combatant = null } = {}) {
 }
 
 /**
+ * An Actor stand-in for the overlay tests.
+ *
+ * `system` is the raw system data an adapter reads; `items` and `effects` are
+ * the embedded collections it walks for class levels and conditions.
+ */
+export function makeActor({
+  id = "actor-1",
+  name = "Test Character",
+  img = "worlds/test/hero.webp",
+  hasPlayerOwner = true,
+  system = {},
+  items = [],
+  effects = []
+} = {}) {
+  return { id, name, img, hasPlayerOwner, system, items, effects };
+}
+
+/** A Token placeable: the actor hangs off it, but `hidden` lives on .document. */
+export function makeToken({ actor = null, hidden = false } = {}) {
+  return { actor, document: { hidden } };
+}
+
+/** A Combatant: carries its own hidden flag as well as its token's. */
+export function makeCombatant({ actor = null, hidden = false, tokenHidden = false } = {}) {
+  return { actor, hidden, token: { hidden: tokenHidden } };
+}
+
+/**
  * Install globals for one test.
  *
  * `settings` is keyed by the SETTINGS values (e.g. "syncEnabled"), and
@@ -57,7 +91,8 @@ export function installFoundry({
   settings = {},
   combat = null,
   controlled = [],
-  isGM = true
+  isGM = true,
+  systemId = ""
 } = {}) {
   const store = new Map(
     Object.entries({
@@ -65,6 +100,11 @@ export function installFoundry({
       [SETTINGS.sceneMappings]: {},
       [SETTINGS.explorationScene]: "",
       [SETTINGS.dmFallbackScene]: "",
+      [SETTINGS.overlayEnabled]: true,
+      [SETTINGS.overlayFields]: { ...OVERLAY_FIELDS },
+      [SETTINGS.overlayNpcFields]: { ...OVERLAY_NPC_FIELDS },
+      [SETTINGS.overlayNpcs]: NPC_POLICY.none,
+      [SETTINGS.overlayEventName]: DEFAULT_OVERLAY_EVENT,
       ...settings
     })
   );
@@ -75,6 +115,7 @@ export function installFoundry({
     user: { isGM },
     combat,
     i18n,
+    system: { id: systemId },
     settings: {
       get: (_moduleId, key) => store.get(key),
       set: (_moduleId, key, value) => {
@@ -99,9 +140,14 @@ export function installFoundry({
  * Replace the obs singleton's connection surface with a spy.
  * Returns the spy plus a restore function.
  */
-export function stubObs(obs, { connected = true, setScene } = {}) {
-  const previous = { connected: obs.connected, setScene: obs.setScene };
+export function stubObs(obs, { connected = true, setScene, emit } = {}) {
+  const previous = {
+    connected: obs.connected,
+    setScene: obs.setScene,
+    emitBrowserEvent: obs.emitBrowserEvent
+  };
   const calls = [];
+  const emitted = [];
 
   obs.connected = connected;
   obs.setScene = async (sceneName) => {
@@ -109,12 +155,24 @@ export function stubObs(obs, { connected = true, setScene } = {}) {
     if (setScene) return setScene(sceneName);
     return {};
   };
+  obs.emitBrowserEvent = async (eventName, eventData) => {
+    emitted.push({ eventName, eventData });
+    if (emit) return emit(eventName, eventData);
+    return {};
+  };
 
   return {
     calls,
+    /** Every overlay push, in order: { eventName, eventData }. */
+    emitted,
+    /** The payload of the most recent push. */
+    get lastPayload() {
+      return emitted.length ? emitted[emitted.length - 1].eventData : null;
+    },
     restore() {
       obs.connected = previous.connected;
       obs.setScene = previous.setScene;
+      obs.emitBrowserEvent = previous.emitBrowserEvent;
     }
   };
 }
