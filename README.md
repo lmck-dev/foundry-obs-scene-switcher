@@ -59,12 +59,26 @@ pick up conditions.
 It renders in an **OBS Browser Source**, so your viewers see it; it is not a
 window inside Foundry.
 
-1. Tick **Stream Character Overlay** in the module settings. The **Browser
-   Source URL** appears directly underneath, with a copy button.
-2. In OBS: **Sources → + → Browser**, paste the URL, and set the size to about
-   **480 × 220**. Add it to whichever scenes should show the card.
+1. Tick **Stream Character Overlay** in the module settings. The **overlay
+   file's** location appears directly underneath, with a copy button.
+2. In OBS: **Sources → + → Browser**, tick **Local file**, and browse to that
+   file inside your Foundry user data folder. Set the size to about
+   **480 × 220**, and add the source to whichever scenes should show the card.
 
-(The same URL is also in the **Configure Character Overlay** submenu, alongside
+> **It has to be the local file, not a web address.** Foundry deliberately
+> serves anything HTML-shaped from its user data folder as `text/plain`, so
+> that modules cannot host pages on Foundry's origin. A Browser Source pointed
+> at `http://your-foundry/modules/…/overlay.html` will display the markup as
+> text instead of rendering the card. This is why the page is written to work
+> from `file://`.
+
+If OBS runs on a different machine from Foundry, copy `overlay/overlay.html`
+and `overlay/overlay.js` to it — they are self-contained, and the card is
+driven over the obs-websocket connection rather than from Foundry. Portraits
+are the exception: they load from Foundry over HTTP, so that machine needs to
+be able to reach it.
+
+(The same path is also in the **Configure Character Overlay** submenu, alongside
 the rest of the overlay settings.)
 
 Choose which rows appear from the same settings window. **Player characters and
@@ -85,9 +99,17 @@ appear*:
 
 Tokens hidden from players are never shown, whichever option you choose.
 
-**Appearance:** the URL accepts `?accent=%23c0392b`, `&scale=1.25` and
-`&anchor=top`. Every element has a stable class name, so OBS's own **Custom CSS**
-box can restyle any part of the card without editing files.
+**Appearance:** the page accepts `?accent=%23c0392b`, `&scale=1.25` and
+`&anchor=top`. OBS's **Local file** checkbox gives no way to add a query
+string, so to use these, untick it and type the address into the URL box
+instead:
+
+```
+file:///path/to/Data/modules/foundry-obs-scene-switcher/overlay/overlay.html?accent=%23c0392b&scale=1.25
+```
+
+Every element also has a stable class name, so OBS's own **Custom CSS** box can
+restyle any part of the card without editing files or touching the URL.
 
 **Systems:** dnd5e reads class levels, HP, AC, ability scores, speed, passive
 perception and conditions. Other systems fall back to a generic reading —
@@ -110,6 +132,9 @@ scripts/
   override-button.js        Combat Tracker toggle button
   character-data.js         actor -> overlay payload, per game system
   overlay-feed.js           pushes the current character to OBS
+  settings-highlight.js     auth-failure highlight in Settings
+  settings-privacy.js       masks the port/password in Settings
+  overlay-url-field.js      overlay file location under the toggle
   main.js                   settings registration + hook wiring (entry point)
 applications/
   mapping-config.js         ApplicationV2 settings submenu
@@ -124,13 +149,13 @@ lang/en.json
 
 ## Status / testing
 
-- 174 unit tests run in CI on every push (`npm test`, Node 22). They cover the
+- 219 unit tests run in CI on every push (`npm test`, Node 22). They cover the
   obs-websocket handshake (cross-checked against the spec's example vector),
   every `resolveScene()` branch, the tracker button's DOM injection, the actor
-  adapters, the overlay feed's privacy gating, and the overlay page itself.
+  adapters, the overlay feed's privacy gating, the settings-window decorations,
+  the overlay page itself, and the Handlebars templates.
 - Scene switching has been run in a live game and worked as intended.
-- The character overlay has **not yet been run against a real OBS** — the
-  Browser Source setup is the part to smoke-test first.
+- The character overlay is **still being smoke-tested against a real OBS**.
 
 ## Out of scope
 
@@ -140,10 +165,5 @@ lang/en.json
 
 ## Open items to confirm in a live world
 
-- Load the overlay in an OBS Browser Source and confirm the card appears and
-  updates. If it stays blank, check that Foundry serves
-  `/modules/foundry-obs-scene-switcher/overlay/overlay.html` without a login —
-  if it does not, save the two `overlay/` files locally and point the Browser
-  Source at the local file instead, which works identically.
-- Confirm portraits load in OBS; they are sent as absolute Foundry URLs, so the
-  OBS machine must be able to reach the Foundry server.
+- Confirm portraits load in OBS. They are sent as absolute Foundry URLs, so the
+  machine running OBS must be able to reach the Foundry server.

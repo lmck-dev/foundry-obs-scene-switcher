@@ -10,7 +10,7 @@ import assert from "node:assert/strict";
 import { MODULE_ID, SETTINGS } from "../scripts/constants.js";
 import {
   refreshOverlayUrlField,
-  browserSourceUrl
+  overlayFilePath
 } from "../scripts/overlay-url-field.js";
 import { installDom, count, click } from "./helpers/dom.js";
 import { installFoundry } from "./helpers/foundry-mock.js";
@@ -55,17 +55,17 @@ function open(t, options) {
 /*  The URL itself                              */
 /* -------------------------------------------- */
 
-test("the URL is absolute and points at the overlay page", (t) => {
+test("the path points at the overlay page inside the user data folder", (t) => {
   const dom = installDom();
   t.after(() => dom.restore());
 
-  assert.equal(
-    browserSourceUrl(),
-    `https://localhost/modules/${MODULE_ID}/overlay/overlay.html`
-  );
+  assert.equal(overlayFilePath(), `Data/modules/${MODULE_ID}/overlay/overlay.html`);
 });
 
-test("the URL honours a Foundry route prefix", (t) => {
+test("it is a file path, not a web address", (t) => {
+  // Foundry force-serves module HTML as text/plain, so a Browser Source
+  // pointed at the server renders the markup as text. OBS has to load the
+  // local file, and telling the user otherwise sends them in a circle.
   const dom = installDom();
   const saved = globalThis.foundry;
   globalThis.foundry = { utils: { getRoute: (path) => `/vtt/${path}` } };
@@ -74,10 +74,10 @@ test("the URL honours a Foundry route prefix", (t) => {
     dom.restore();
   });
 
-  assert.equal(
-    browserSourceUrl(),
-    `https://localhost/vtt/modules/${MODULE_ID}/overlay/overlay.html`
-  );
+  const value = overlayFilePath();
+  assert.equal(/^https?:/.test(value), false, "must not be an http(s) address");
+  assert.equal(value.includes("localhost"), false, "must not carry a host");
+  assert.equal(value.includes("/vtt/"), false, "must not carry a route prefix");
 });
 
 /* -------------------------------------------- */
@@ -94,14 +94,14 @@ test("the field is inserted directly after the overlay toggle", (t) => {
   assert.equal(toggleGroup.nextElementSibling === root.querySelector(GROUP), true);
 });
 
-test("the field carries the URL and a copy button", (t) => {
+test("the field carries the path and a copy button", (t) => {
   const { root } = open(t);
 
   refreshOverlayUrlField(root);
 
   assert.equal(
     root.querySelector(".obs-overlay-url").value,
-    `https://localhost/modules/${MODULE_ID}/overlay/overlay.html`
+    `Data/modules/${MODULE_ID}/overlay/overlay.html`
   );
   assert.equal(count(root, "button.obs-overlay-url-copy"), 1);
 });
@@ -212,9 +212,7 @@ test("clicking copy writes the URL to the clipboard and says so", async (t) => {
   click(root.querySelector("button.obs-overlay-url-copy"));
   await new Promise((resolve) => setImmediate(resolve));
 
-  assert.deepEqual(written, [
-    `https://localhost/modules/${MODULE_ID}/overlay/overlay.html`
-  ]);
+  assert.deepEqual(written, [`Data/modules/${MODULE_ID}/overlay/overlay.html`]);
   assert.equal(foundry.notifications.info.length, 1);
 });
 

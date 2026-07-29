@@ -12,8 +12,8 @@
 
   "foundry-obs-scene-switcher.settings.overlayEnabled.name": "Stream Character Overlay",
   "foundry-obs-scene-switcher.settings.overlayEnabled.hint": "Show the current character's portrait and stats on stream, via an OBS Browser Source. Configure it under 'Character Overlay' below.",
-  "foundry-obs-scene-switcher.settings.overlayEnabled.url": "Browser Source URL",
-  "foundry-obs-scene-switcher.settings.overlayEnabled.urlHint": "In OBS: Sources → + → Browser, paste this as the URL, and size it around 480 × 220.",
+  "foundry-obs-scene-switcher.settings.overlayEnabled.url": "Overlay File",
+  "foundry-obs-scene-switcher.settings.overlayEnabled.urlHint": "In OBS: Sources → + → Browser, tick 'Local file', and browse to this file inside your Foundry user data folder (its location is shown in Setup → Configuration). Size the source around 480 × 220. It has to be the local file, not a web address: Foundry deliberately serves module HTML as plain text, so a Browser Source pointed at the server shows the markup instead of the card.",
   "foundry-obs-scene-switcher.settings.overlayEnabled.copy": "Copy",
   "foundry-obs-scene-switcher.settings.overlayEnabled.copied": "Browser Source URL copied to the clipboard.",
 
@@ -23,8 +23,8 @@
   "foundry-obs-scene-switcher.overlay.title": "OBS Character Overlay",
   "foundry-obs-scene-switcher.overlay.intro": "Puts a card on your stream showing whichever character the scene switcher is currently on — the token you have selected, or the combatant whose turn it is.",
   "foundry-obs-scene-switcher.overlay.setup": "OBS Setup",
-  "foundry-obs-scene-switcher.overlay.url": "Browser Source URL",
-  "foundry-obs-scene-switcher.overlay.urlHint": "In OBS, add a Browser Source and paste this as its URL (around 480×220 is a good size). Leave 'Shutdown source when not visible' unticked, or tick it and the card will refill within a few seconds of the scene becoming visible.",
+  "foundry-obs-scene-switcher.overlay.url": "Overlay File",
+  "foundry-obs-scene-switcher.overlay.urlHint": "In OBS, add a Browser Source, tick 'Local file', and browse to this file inside your Foundry user data folder (Setup → Configuration shows where that is). Around 480×220 is a good size. It must be the local file rather than a web address — Foundry serves module HTML as plain text on purpose, so a Browser Source pointed at the server would show the markup instead of the card. 'Shutdown source when not visible' is fine to leave ticked; the card refills within a few seconds of the scene becoming visible.",
   "foundry-obs-scene-switcher.overlay.rows": "What to Show",
   "foundry-obs-scene-switcher.overlay.rowsHint": "Player characters and NPCs get their own sets, so a villain can appear with a portrait and name while their stats stay at the table. The name is always shown. Rows with no data for a given character are hidden automatically, whatever is ticked here.",
   "foundry-obs-scene-switcher.overlay.columnPc": "Player characters",

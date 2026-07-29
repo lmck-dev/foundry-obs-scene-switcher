@@ -10,7 +10,7 @@ import {
   resolveOverlayFields
 } from "../scripts/constants.js";
 import { pushOverlay, resetOverlayCache } from "../scripts/overlay-feed.js";
-import { browserSourceUrl } from "../scripts/overlay-url-field.js";
+import { overlayFilePath } from "../scripts/overlay-url-field.js";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 
@@ -65,7 +65,7 @@ export class OverlayConfig extends HandlebarsApplicationMixin(ApplicationV2) {
       npcPolicy: getSetting(SETTINGS.overlayNpcs),
       eventName: getSetting(SETTINGS.overlayEventName) || DEFAULT_OVERLAY_EVENT,
       defaultEventName: DEFAULT_OVERLAY_EVENT,
-      browserSourceUrl: browserSourceUrl(),
+      overlayFilePath: overlayFilePath(),
       buttons: [
         { type: "submit", icon: "fas fa-save", label: `${MODULE_ID}.overlay.save` }
       ]

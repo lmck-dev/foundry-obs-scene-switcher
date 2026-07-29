@@ -1,10 +1,15 @@
 /**
- * The Browser Source URL, shown in the Settings window directly under the
- * overlay toggle.
+ * Where to point an OBS Browser Source, shown in the Settings window directly
+ * under the overlay toggle — the moment you tick the overlay on, that is the
+ * next thing you need.
  *
- * The URL is also in the overlay's own settings submenu, but that is one window
- * further away than it needs to be: the moment you tick the overlay on, the
- * next thing you need is the address to paste into OBS.
+ * It is a **file path, not a URL**. Foundry force-serves anything under the
+ * user data directory that looks like HTML with `Content-Type: text/plain`
+ * (`dist/server/express.mjs`), so that modules cannot host pages on Foundry's
+ * own origin. A Browser Source pointed at the served page therefore displays
+ * the markup as text instead of rendering it. OBS's own "Local file" option is
+ * the supported route, and it is why overlay.js is a classic script — file://
+ * blocks module imports.
  */
 import { MODULE_ID, SETTINGS } from "./constants.js";
 
@@ -12,16 +17,14 @@ const TOGGLE_INPUT = `input[name="${MODULE_ID}.${SETTINGS.overlayEnabled}"]`;
 const GROUP_CLASS = "obs-overlay-url-group";
 
 /**
- * The address an OBS Browser Source should load.
+ * The overlay page's location within the Foundry user data folder.
  *
- * Absolute, because OBS is a different application and often a different
- * machine, so a relative path is no use to whoever is pasting it. getRoute
- * applies Foundry's route prefix when the server runs under one.
+ * Relative, because the client has no way to know the server's filesystem
+ * root — Foundry does not expose it. The user data folder's location is shown
+ * in Foundry's own Setup → Configuration screen, which the hint points at.
  */
-export function browserSourceUrl() {
-  const path = `modules/${MODULE_ID}/overlay/overlay.html`;
-  const routed = globalThis.foundry?.utils?.getRoute?.(path) ?? `/${path}`;
-  return `${window.location.origin}${routed}`;
+export function overlayFilePath() {
+  return `Data/modules/${MODULE_ID}/overlay/overlay.html`;
 }
 
 async function copyToClipboard(input) {
@@ -51,7 +54,7 @@ function buildGroup() {
   input.type = "text";
   input.readOnly = true;
   input.className = "obs-overlay-url";
-  input.value = browserSourceUrl();
+  input.value = overlayFilePath();
   input.addEventListener("focus", () => input.select());
 
   const button = document.createElement("button");

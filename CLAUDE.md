@@ -50,9 +50,14 @@ with `event_data` as `event.detail`. Consequences that shape the design:
   whenever its scene becomes visible, so `overlay-feed.js` runs a 5s heartbeat
   re-sending the current payload. That, not any handshake, is what makes a
   reloaded overlay refill.
-- **`overlay/overlay.js` is a classic script on purpose.** A Browser Source can
-  be pointed at a local file, and `file://` blocks module imports, so
-  `type="module"` would leave the page silently dead for those users.
+- **The overlay must be loaded as a local file, and that is not optional.**
+  Foundry's static handler for the user data folder force-serves anything that
+  mime-resolves to `text/html` as `text/plain` (`dist/server/express.mjs`,
+  confirmed in 14.365), so modules cannot host pages on its origin. A Browser
+  Source pointed at the served page shows the markup as text. No filename or
+  extension avoids this — OBS's "Local file" option is the only route.
+- **`overlay/overlay.js` is therefore a classic script.** `file://` blocks
+  module imports, so `type="module"` would leave the page silently dead.
 - Portraits are sent as **absolute** URLs (`absoluteImageUrl`) for the same
   reason — a relative path resolves against the filesystem in the file:// case.
 
