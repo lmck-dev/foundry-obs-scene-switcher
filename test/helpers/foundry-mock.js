@@ -109,7 +109,22 @@ export function installFoundry({
     })
   );
 
-  const previous = { game: globalThis.game, canvas: globalThis.canvas };
+  const previous = {
+    game: globalThis.game,
+    canvas: globalThis.canvas,
+    ui: globalThis.ui
+  };
+
+  // Notifications are user-facing, so tests assert on them rather than letting
+  // an undefined `ui` throw halfway through the code under test.
+  const notifications = { info: [], warn: [], error: [] };
+  globalThis.ui = {
+    notifications: {
+      info: (message) => notifications.info.push(message),
+      warn: (message) => notifications.warn.push(message),
+      error: (message) => notifications.error.push(message)
+    }
+  };
 
   globalThis.game = {
     user: { isGM },
@@ -129,9 +144,11 @@ export function installFoundry({
 
   return {
     store,
+    notifications,
     restore() {
       globalThis.game = previous.game;
       globalThis.canvas = previous.canvas;
+      globalThis.ui = previous.ui;
     }
   };
 }

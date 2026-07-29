@@ -42,6 +42,9 @@ Resolution order:
 2. In Foundry: enable the module, then open **Game Settings → Configure Settings
    → OBS Scene Switcher** and enter the host / port / password. (These are
    client-scoped — they live on the DM's machine and never sync to players.)
+   The port and password are **masked**, with a reveal button on each, so
+   opening this window mid-stream does not put your obs-websocket credentials
+   in front of an audience.
 3. Open **Configure Scene Mappings** (settings submenu) to:
    - set the **Exploration** and **Dungeon Master** scenes, and
    - map individual actors to OBS scenes.
@@ -56,11 +59,13 @@ pick up conditions.
 It renders in an **OBS Browser Source**, so your viewers see it; it is not a
 window inside Foundry.
 
-1. Tick **Stream Character Overlay** in the module settings.
-2. Open **Configure Character Overlay** (settings submenu) and copy the
-   **Browser Source URL**.
-3. In OBS: **Sources → + → Browser**, paste the URL, and set the size to about
+1. Tick **Stream Character Overlay** in the module settings. The **Browser
+   Source URL** appears directly underneath, with a copy button.
+2. In OBS: **Sources → + → Browser**, paste the URL, and set the size to about
    **480 × 220**. Add it to whichever scenes should show the card.
+
+(The same URL is also in the **Configure Character Overlay** submenu, alongside
+the rest of the overlay settings.)
 
 Choose which rows appear from the same settings window. **Player characters and
 NPCs have separate sets**, so a villain can appear with a portrait and a name

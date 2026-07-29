@@ -10,6 +10,7 @@ import {
   resolveOverlayFields
 } from "../scripts/constants.js";
 import { pushOverlay, resetOverlayCache } from "../scripts/overlay-feed.js";
+import { browserSourceUrl } from "../scripts/overlay-url-field.js";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 
@@ -39,19 +40,6 @@ export class OverlayConfig extends HandlebarsApplicationMixin(ApplicationV2) {
     footer: { template: "templates/generic/form-footer.hbs" }
   };
 
-  /**
-   * The URL to paste into OBS.
-   *
-   * getRoute applies the server's route prefix if it has one; the origin makes
-   * it absolute, because OBS is a different application and often a different
-   * machine, so a relative path is no use to the person copying this.
-   */
-  static browserSourceUrl() {
-    const path = `modules/${MODULE_ID}/overlay/overlay.html`;
-    const routed = foundry.utils.getRoute?.(path) ?? `/${path}`;
-    return `${window.location.origin}${routed}`;
-  }
-
   async _prepareContext(_options) {
     const pc = resolveOverlayFields(getSetting(SETTINGS.overlayFields), OVERLAY_FIELDS);
     const npc = resolveOverlayFields(
@@ -77,7 +65,7 @@ export class OverlayConfig extends HandlebarsApplicationMixin(ApplicationV2) {
       npcPolicy: getSetting(SETTINGS.overlayNpcs),
       eventName: getSetting(SETTINGS.overlayEventName) || DEFAULT_OVERLAY_EVENT,
       defaultEventName: DEFAULT_OVERLAY_EVENT,
-      browserSourceUrl: OverlayConfig.browserSourceUrl(),
+      browserSourceUrl: browserSourceUrl(),
       buttons: [
         { type: "submit", icon: "fas fa-save", label: `${MODULE_ID}.overlay.save` }
       ]

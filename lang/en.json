@@ -7,9 +7,15 @@
   "foundry-obs-scene-switcher.settings.password.hint": "Password shown in OBS's WebSocket Server Settings. Leave blank if authentication is disabled.",
   "foundry-obs-scene-switcher.settings.password.authWarning": "OBS rejected this password ({reason}). Copy it exactly from OBS → Tools → WebSocket Server Settings → Show Connect Info.",
   "foundry-obs-scene-switcher.settings.password.authWarningGeneric": "authentication failed",
+  "foundry-obs-scene-switcher.settings.reveal": "Show value",
+  "foundry-obs-scene-switcher.settings.hide": "Hide value",
 
   "foundry-obs-scene-switcher.settings.overlayEnabled.name": "Stream Character Overlay",
   "foundry-obs-scene-switcher.settings.overlayEnabled.hint": "Show the current character's portrait and stats on stream, via an OBS Browser Source. Configure it under 'Character Overlay' below.",
+  "foundry-obs-scene-switcher.settings.overlayEnabled.url": "Browser Source URL",
+  "foundry-obs-scene-switcher.settings.overlayEnabled.urlHint": "In OBS: Sources → + → Browser, paste this as the URL, and size it around 480 × 220.",
+  "foundry-obs-scene-switcher.settings.overlayEnabled.copy": "Copy",
+  "foundry-obs-scene-switcher.settings.overlayEnabled.copied": "Browser Source URL copied to the clipboard.",
 
   "foundry-obs-scene-switcher.overlay.menuName": "Character Overlay",
   "foundry-obs-scene-switcher.overlay.menuLabel": "Configure Character Overlay",

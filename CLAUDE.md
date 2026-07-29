@@ -18,7 +18,9 @@ scripts/scene-sync.js        combat/token → scene mapping, + resolveSubject()
 scripts/override-button.js   manual override control
 scripts/character-data.js    actor → overlay payload, per game system
 scripts/overlay-feed.js      pushes the current character to OBS
-scripts/settings-highlight.js
+scripts/settings-highlight.js  auth-failure highlight in Settings
+scripts/settings-privacy.js   masks the port/password in Settings
+scripts/overlay-url-field.js  Browser Source URL under the overlay toggle
 scripts/constants.js
 applications/mapping-config.js + templates/mapping-config.hbs
 applications/overlay-config.js + templates/overlay-config.hbs
@@ -75,6 +77,23 @@ default to `resolveOverlayFields` silently gives NPCs the players' rows, which
 is the same privacy leak by another route, so both directions are mutation-
 tested.
 
+## Settings-window decorations
+
+Three modules reach into markup Foundry owns, all from the one
+`renderSettingsConfig` hook, all idempotent because that hook fires on every
+re-render:
+
+- `settings-privacy.js` — masks the port and password (Foundry renders a String
+  setting as a plain text input, so the obs-websocket password would otherwise
+  be on screen in the clear, and this module's users are by definition live).
+  It must not re-mask a field the user just revealed, hence the marker class.
+- `overlay-url-field.js` — puts the Browser Source URL under the overlay toggle,
+  following the checkbox live rather than the saved setting.
+- `settings-highlight.js` — red outline on the password after an auth failure.
+
+Any button injected into that form needs `type="button"`: the default would
+submit the settings form and close the window.
+
 **Templates are only exercised by `test/templates.test.js`.** Nothing else can
 be: they render inside Foundry, and an unregistered Handlebars helper rejects
 the whole ApplicationV2 render, so the window just never opens with the error
@@ -97,10 +116,10 @@ npm ci
 npm test          # node --test --test-timeout=5000 "test/**/*.test.js"
 ```
 
-192 tests covering `obs-client.js`, `scene-sync.js`, `override-button.js`,
-`character-data.js`, `overlay-feed.js`, the overlay page and the Handlebars
-templates, run in CI on every push and PR (`.github/workflows/test.yml`, Node
-22; also verified on 24).
+219 tests covering `obs-client.js`, `scene-sync.js`, `override-button.js`,
+`character-data.js`, `overlay-feed.js`, the settings-window decorations, the
+overlay page and the Handlebars templates, run in CI on every push and PR
+(`.github/workflows/test.yml`, Node 22; also verified on 24).
 
 - `test/helpers/mock-websocket.js` — a scriptable WebSocket that lets a test
   drive the obs-websocket handshake frame by frame.

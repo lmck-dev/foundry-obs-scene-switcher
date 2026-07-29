@@ -13,6 +13,8 @@ import { obs } from "./obs-client.js";
 import { syncScene, resetSceneCache } from "./scene-sync.js";
 import { injectOverrideButton, updateAllButtons } from "./override-button.js";
 import { refreshSettingsHighlight } from "./settings-highlight.js";
+import { refreshOverlayUrlField } from "./overlay-url-field.js";
+import { maskConnectionFields } from "./settings-privacy.js";
 import {
   pushOverlay,
   refreshIfCurrent,
@@ -251,9 +253,12 @@ for (const hook of ["createActiveEffect", "updateActiveEffect", "deleteActiveEff
 // Inject the manual-override button into the combat tracker.
 Hooks.on("renderCombatTracker", (app, html) => injectOverrideButton(app, html));
 
-// Highlight the password field in the settings window when auth has failed.
+// Decorate the settings window: highlight the password field when auth has
+// failed, and offer the Browser Source URL under the overlay toggle.
 Hooks.on("renderSettingsConfig", (app, html) => {
   if (!game.user?.isGM) return;
   const root = html instanceof HTMLElement ? html : html?.[0];
+  maskConnectionFields(root ?? document);
   refreshSettingsHighlight(root ?? document);
+  refreshOverlayUrlField(root ?? document);
 });
