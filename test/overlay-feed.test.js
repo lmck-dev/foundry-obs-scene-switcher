@@ -15,6 +15,7 @@ import {
   refreshIfCurrent,
   absoluteImageUrl,
   overlayEventName,
+  isCardEnabled,
   startHeartbeat,
   stopHeartbeat,
   HEARTBEAT_MS
@@ -238,6 +239,74 @@ test("player characters appear under every policy, mapping or not", async (t) =>
     unmute();
     foundry.restore();
   }
+});
+
+test("an NPC ticked for a card appears even under the strictest policy", async (t) => {
+  // The point of the per-actor tick: name a recurring NPC on stream without
+  // spending a scene switch on them.
+  const { spy } = setup(t, {
+    controlled: [makeToken({ actor: monster() })],
+    settings: {
+      [SETTINGS.overlayNpcs]: NPC_POLICY.none,
+      [SETTINGS.overlayActors]: { beast: true }
+    }
+  });
+
+  await pushOverlay();
+  assert.equal(spy.lastPayload.name, "Owlbear");
+});
+
+test("a ticked NPC needs no scene mapping", async (t) => {
+  const { spy } = setup(t, {
+    controlled: [makeToken({ actor: monster() })],
+    settings: {
+      [SETTINGS.overlayNpcs]: NPC_POLICY.mapped,
+      [SETTINGS.sceneMappings]: {},
+      [SETTINGS.overlayActors]: { beast: true }
+    }
+  });
+
+  await pushOverlay();
+  assert.equal(spy.lastPayload.present, true);
+});
+
+test("ticking one NPC does not admit the others", async (t) => {
+  const { spy } = setup(t, {
+    controlled: [makeToken({ actor: monster() })],
+    settings: { [SETTINGS.overlayActors]: { "some-other-actor": true } }
+  });
+
+  await pushOverlay();
+  assert.equal(spy.lastPayload.present, false);
+});
+
+test("an actor ticked and then unticked is refused again", async (t) => {
+  // Stored as { id: true }, so a false or missing entry must not read as on.
+  const { spy } = setup(t, {
+    controlled: [makeToken({ actor: monster() })],
+    settings: { [SETTINGS.overlayActors]: { beast: false } }
+  });
+
+  await pushOverlay();
+  assert.equal(spy.lastPayload.present, false);
+});
+
+test("a ticked NPC is still refused while its token is hidden", async (t) => {
+  const { spy } = setup(t, {
+    controlled: [makeToken({ actor: monster(), hidden: true })],
+    settings: { [SETTINGS.overlayActors]: { beast: true } }
+  });
+
+  await pushOverlay();
+  assert.equal(spy.lastPayload.present, false);
+});
+
+test("isCardEnabled copes with an empty or absent list", (t) => {
+  setup(t, { settings: { [SETTINGS.overlayActors]: undefined } });
+
+  assert.equal(isCardEnabled(makeActor({ id: "anyone" })), false);
+  assert.equal(isCardEnabled(null), false);
+  assert.equal(isCardEnabled({}), false);
 });
 
 test("an unrecognised stored policy is treated as the safe one", async (t) => {

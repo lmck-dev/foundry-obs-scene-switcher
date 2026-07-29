@@ -80,6 +80,13 @@ function subjectInfo(subject) {
   return { actor, hidden };
 }
 
+/** Whether this actor has been ticked for a card of its own. */
+export function isCardEnabled(actor) {
+  if (!actor?.id) return false;
+  const enabled = getSetting(SETTINGS.overlayActors);
+  return Boolean(enabled && enabled[actor.id]);
+}
+
 /**
  * Whether this character is allowed on the stream.
  *
@@ -89,6 +96,11 @@ function subjectInfo(subject) {
  */
 export function mayAppear(actor, subject) {
   if (actor.hasPlayerOwner) return true;
+
+  // An individual tick stands on its own, whatever the blanket rule is. A card
+  // is a lighter thing to grant than a scene, so an NPC can be named on stream
+  // without spending a scene switch on them.
+  if (isCardEnabled(actor)) return true;
 
   switch (getSetting(SETTINGS.overlayNpcs)) {
     case NPC_POLICY.all:

@@ -111,11 +111,37 @@ input.obs-auth-error {
   padding-right: 0.25rem;
 }
 
-.obs-scene-switcher.mapping-config .actor-row {
+/* thumb | name | scene | card */
+.obs-scene-switcher.mapping-config .actor-row,
+.obs-scene-switcher.mapping-config .actor-list-head {
   display: grid;
-  grid-template-columns: 32px minmax(120px, 1fr) minmax(140px, 1.4fr);
+  grid-template-columns: 32px minmax(120px, 1fr) minmax(140px, 1.4fr) 3rem;
   align-items: center;
   gap: 0.5rem;
+}
+
+.obs-scene-switcher.mapping-config .actor-list-head {
+  /* The list scrolls and takes a scrollbar's width; match it so the headings
+     stay over their columns. */
+  padding-right: 0.25rem;
+  margin-bottom: 0.25rem;
+}
+
+.obs-scene-switcher.mapping-config .actor-list-head span {
+  font-size: var(--font-size-12, 0.75rem);
+  font-weight: bold;
+  opacity: 0.8;
+  text-align: center;
+}
+
+.obs-scene-switcher.mapping-config .actor-card,
+.obs-scene-switcher.mapping-config .actor-card-always {
+  justify-self: center;
+  margin: 0;
+}
+
+.obs-scene-switcher.mapping-config .actor-card-always {
+  opacity: 0.45;
 }
 
 .obs-scene-switcher.mapping-config .actor-thumb {

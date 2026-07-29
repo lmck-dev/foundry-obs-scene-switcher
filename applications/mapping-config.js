@@ -1,6 +1,7 @@
 import { MODULE_ID, SETTINGS, getSetting, setSetting, warn } from "../scripts/constants.js";
 import { obs } from "../scripts/obs-client.js";
 import { resetSceneCache, syncScene } from "../scripts/scene-sync.js";
+import { pushOverlay, resetOverlayCache } from "../scripts/overlay-feed.js";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 
@@ -46,13 +47,19 @@ export class MappingConfig extends HandlebarsApplicationMixin(ApplicationV2) {
       warn("Could not fetch scene list from OBS:", err.message);
     }
 
+    const cards = getSetting(SETTINGS.overlayActors) ?? {};
+
     const actors = game.actors.contents
       .map((a) => ({
         id: a.id,
         name: a.name,
         searchName: (a.name ?? "").toLowerCase(),
         img: a.img,
-        scene: mappings[a.id] ?? ""
+        scene: mappings[a.id] ?? "",
+        // Player characters are always eligible for a card, so their row shows
+        // a marker rather than a control that cannot change anything.
+        alwaysShown: a.hasPlayerOwner,
+        card: Boolean(cards[a.id])
       }))
       .sort((a, b) => a.name.localeCompare(b.name));
 
@@ -107,14 +114,24 @@ export class MappingConfig extends HandlebarsApplicationMixin(ApplicationV2) {
       if (trimmed) mappings[id] = trimmed;
     }
 
+    // Only the ticked actors are stored, so the setting stays small and an
+    // actor deleted from the world does not linger in it forever.
+    const cards = {};
+    for (const [id, enabled] of Object.entries(data.card ?? {})) {
+      if (enabled) cards[id] = true;
+    }
+
     await setSetting(SETTINGS.sceneMappings, mappings);
+    await setSetting(SETTINGS.overlayActors, cards);
     await setSetting(SETTINGS.explorationScene, (data.explorationScene ?? "").trim());
     await setSetting(SETTINGS.dmFallbackScene, (data.dmFallbackScene ?? "").trim());
 
     ui.notifications.info(game.i18n.localize(`${MODULE_ID}.config.saved`));
 
-    // Re-evaluate immediately with the new mappings.
+    // Re-evaluate immediately with the new mappings and card list.
     resetSceneCache();
     syncScene();
+    resetOverlayCache();
+    pushOverlay({ force: true });
   }
 }

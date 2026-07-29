@@ -66,7 +66,14 @@ resolution falls through to the next candidate when a mapping is missing, but an
 unmapped selected token is still the character the GM is looking at. They answer
 different questions.
 
-**Privacy is a correctness concern here.** Hidden tokens are never shown, and
+**Privacy is a correctness concern here.** Hidden tokens are never shown — that
+holds however permissive everything below is. An NPC gets on the overlay by one
+of two routes, checked in `mayAppear()`: the per-actor tick (`overlayActors`,
+`{ [actorId]: true }`, edited from the Card column of the mapping window) or the
+blanket policy. The tick exists because a card is a lighter grant than a scene:
+a GM wants recurring NPCs named on stream while scene switches stay reserved for
+the big moments. It is stored ticked-only, so a deleted actor does not linger.
+
 `overlayNpcs` (`NPC_POLICY`: `none` | `mapped` | `all`) defaults to `none` —
 without a gate, clicking a boss token puts its HP and AC on a live stream. The
 `mapped` policy reuses the actor's scene mapping as per-NPC consent rather than
@@ -121,7 +128,7 @@ npm ci
 npm test          # node --test --test-timeout=5000 "test/**/*.test.js"
 ```
 
-219 tests covering `obs-client.js`, `scene-sync.js`, `override-button.js`,
+225 tests covering `obs-client.js`, `scene-sync.js`, `override-button.js`,
 `character-data.js`, `overlay-feed.js`, the settings-window decorations, the
 overlay page and the Handlebars templates, run in CI on every push and PR
 (`.github/workflows/test.yml`, Node 22; also verified on 24).

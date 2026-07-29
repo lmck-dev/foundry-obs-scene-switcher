@@ -104,6 +104,7 @@ export function installFoundry({
       [SETTINGS.overlayFields]: { ...OVERLAY_FIELDS },
       [SETTINGS.overlayNpcFields]: { ...OVERLAY_NPC_FIELDS },
       [SETTINGS.overlayNpcs]: NPC_POLICY.none,
+      [SETTINGS.overlayActors]: {},
       [SETTINGS.overlayEventName]: DEFAULT_OVERLAY_EVENT,
       ...settings
     })

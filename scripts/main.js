@@ -122,6 +122,15 @@ function registerSettings() {
     default: { ...OVERLAY_NPC_FIELDS }
   });
 
+  // Per-actor card opt-in: { [actorId]: true }. Edited from the mapping window,
+  // where the searchable actor list already lives.
+  game.settings.register(MODULE_ID, SETTINGS.overlayActors, {
+    scope: "world",
+    config: false,
+    type: Object,
+    default: {}
+  });
+
   game.settings.register(MODULE_ID, SETTINGS.overlayNpcs, {
     scope: "world",
     config: false,

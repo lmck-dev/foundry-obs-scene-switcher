@@ -16,15 +16,18 @@ export const SETTINGS = {
   overlayFields: "overlayFields",
   overlayNpcFields: "overlayNpcFields",
   overlayNpcs: "overlayNpcs",
+  overlayActors: "overlayActors",
   overlayEventName: "overlayEventName"
 };
 
 /**
- * Which NPCs may appear on the stream overlay. Player characters always may.
+ * Which NPCs may appear on the stream overlay, as a blanket rule. Player
+ * characters always may, and an NPC ticked individually always may — a card is
+ * a lighter thing to give a character than a whole scene, so the two are worth
+ * deciding separately.
  *
  * `mapped` uses the actor's scene mapping as the opt-in: giving an NPC a scene
- * is already a statement that it is featured on stream, so it doubles as
- * per-NPC consent without a second list to keep in step.
+ * is already a statement that it is featured on stream.
  */
 export const NPC_POLICY = {
   none: "none",

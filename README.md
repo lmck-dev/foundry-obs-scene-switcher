@@ -87,17 +87,23 @@ while their hit points and AC stay at the table — the NPC set defaults to
 portrait only. The name is always shown, and rows a character has no data for
 are hidden automatically, so a card never shows an empty field.
 
-**Privacy:** player characters always appear. NPCs are gated by *Which NPCs may
-appear*:
+**Privacy:** player characters always appear. NPCs need letting in, either
+individually or by a blanket rule.
+
+*Per NPC* — the **Card** column in **Configure Scene Mappings** puts that
+character on the overlay with no scene switch attached. A card is a lighter
+thing to give a character than a whole scene, so you can name every recurring
+NPC while keeping scene changes for the boss fights. A ticked NPC appears
+whatever the blanket rule says.
+
+*Blanket rule* — **Which NPCs may appear**:
 
 - **None — player characters only** (default).
 - **Only NPCs with a scene mapping** — giving an NPC a scene already says it is
-  one you feature on stream, so it doubles as a per-NPC opt-in. Map the recurring
-  villain, and their card appears when the scene switches to them; every
-  unmapped monster stays private, with no second list to maintain.
+  one you feature on stream, so it doubles as an opt-in.
 - **Any NPC** — puts every monster's hit points and AC on your stream.
 
-Tokens hidden from players are never shown, whichever option you choose.
+Tokens hidden from players are never shown, by any route.
 
 **Appearance:** the page accepts `?accent=%23c0392b`, `&scale=1.25` and
 `&anchor=top`. OBS's **Local file** checkbox gives no way to add a query
@@ -149,7 +155,7 @@ lang/en.json
 
 ## Status / testing
 
-- 219 unit tests run in CI on every push (`npm test`, Node 22). They cover the
+- 225 unit tests run in CI on every push (`npm test`, Node 22). They cover the
   obs-websocket handshake (cross-checked against the spec's example vector),
   every `resolveScene()` branch, the tracker button's DOM injection, the actor
   adapters, the overlay feed's privacy gating, the settings-window decorations,
