@@ -161,7 +161,8 @@ lang/en.json
   adapters, the overlay feed's privacy gating, the settings-window decorations,
   the overlay page itself, and the Handlebars templates.
 - Scene switching has been run in a live game and worked as intended.
-- The character overlay is **still being smoke-tested against a real OBS**.
+- The character overlay has been rendered in a real OBS Browser Source and
+  behaved as intended.
 
 ## Out of scope
 

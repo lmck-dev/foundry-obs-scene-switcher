@@ -188,11 +188,11 @@ excludes it, `test/` and `node_modules/`.
 real game — it worked flawlessly (confirmed 2026-07-28).** Scene switching,
 the settings UI and the connection indicator all behaved correctly in live play.
 
-The stream character overlay is built and unit-tested but has **never been run
-against a real OBS or a live world** — that is the next thing to verify, before
-any release carries it.
+The stream character overlay is built, unit-tested, and **confirmed rendering in
+a real OBS Browser Source** (2026-07-29). It lives on the pushed branch
+`stream-character-overlay`, unmerged while the author lives with it.
 
-Also outstanding: submit the manifest to the Foundry package registry via the
+Outstanding: submit the manifest to the Foundry package registry via the
 foundryvtt.com admin panel.
 
 Since the module is live and installable by others, treat regressions as
