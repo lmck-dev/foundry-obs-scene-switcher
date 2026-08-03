@@ -259,6 +259,13 @@ for when a panel is blank:
 - `selfTest()` — sends a payload to all three pages bypassing every gate. If
   the panels light up, the transport and pages are fine and a gate is closed.
 
+## Licence
+
+GPL-3.0-or-later. Forks and derivatives must stay open source under the same
+terms. Releases up to and including **v1.1.0** were published under MIT and
+remain available under those terms — that grant cannot be revoked for versions
+already published.
+
 ## Out of scope
 
 - Speaker-detection mode (switch to whoever is talking) — needs the world's AV

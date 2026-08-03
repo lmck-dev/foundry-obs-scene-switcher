@@ -5,7 +5,9 @@ active combat turn. Talks to OBS's built-in obs-websocket **v5 directly from the
 browser** — no companion OBS plugin, no local bridge process.
 
 - **Root**: `.../Foundry-OBS-Scene-Switcher/foundry-obs-scene-switcher/`
-- **Module id**: `foundry-obs-scene-switcher` · v1.0.0 · MIT
+- **Module id**: `foundry-obs-scene-switcher` · v1.1.0 · GPL-3.0-or-later
+  (MIT through v1.1.0; relicensed for the registry submission — releases up to
+  and including v1.1.0 remain available under MIT and that cannot be revoked)
 - **Remote**: github.com/lmck-dev/foundry-obs-scene-switcher (public)
 - Foundry compatibility: minimum 13, verified 14. UI is **ApplicationV2**.
 

@@ -1,11 +1,11 @@
 {
   "id": "foundry-obs-scene-switcher",
   "title": "OBS Scene Switcher",
-  "description": "Automatically switches OBS scenes based on combat state, focused token, and the active combat turn. Connects directly to OBS's built-in obs-websocket server — no companion OBS plugin required.",
+  "description": "Automatically switches OBS scenes based on combat state, focused token, and the active combat turn, and puts live overlays on your stream: a character card, the chat log, and the turn order. Connects directly to OBS's built-in obs-websocket server — no companion OBS plugin required.",
   "version": "1.0.0",
   "compatibility": {
     "minimum": "13",
-    "verified": "14"
+    "verified": "14.365"
   },
   "authors": [
     {
@@ -13,9 +13,27 @@
       "url": "https://github.com/lmck-dev"
     }
   ],
-  "license": "MIT",
+  "license": "GPL-3.0-or-later",
   "readme": "https://github.com/lmck-dev/foundry-obs-scene-switcher/blob/main/README.md",
   "bugs": "https://github.com/lmck-dev/foundry-obs-scene-switcher/issues",
+  "changelog": "https://github.com/lmck-dev/foundry-obs-scene-switcher/releases",
+  "media": [
+    {
+      "type": "cover",
+      "url": "https://raw.githubusercontent.com/lmck-dev/foundry-obs-scene-switcher/main/media/cover.png",
+      "caption": "Character card, chat feed and combat tracker on a stream"
+    },
+    {
+      "type": "screenshot",
+      "url": "https://raw.githubusercontent.com/lmck-dev/foundry-obs-scene-switcher/main/media/screenshot-chat.png",
+      "caption": "The chat feed, showing initiative rolls and table talk"
+    },
+    {
+      "type": "screenshot",
+      "url": "https://raw.githubusercontent.com/lmck-dev/foundry-obs-scene-switcher/main/media/screenshot-combat.png",
+      "caption": "The combat tracker, with the current turn highlighted"
+    }
+  ],
   "esmodules": [
     "scripts/main.js"
   ],
