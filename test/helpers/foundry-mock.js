@@ -139,7 +139,8 @@ export function installFoundry({
   controlled = [],
   isGM = true,
   systemId = "",
-  actors = []
+  actors = [],
+  messages = []
 } = {}) {
   const store = new Map(
     Object.entries({
@@ -194,6 +195,9 @@ export function installFoundry({
     system: { id: systemId },
     // The chat feed looks up a speaker's actor for its portrait.
     actors: { get: (id) => actors.find((actor) => actor.id === id) ?? null },
+    // Foundry's chat log, which the feed seeds itself from. A real one is a
+    // Collection exposing `.contents`, oldest first.
+    messages: { contents: messages },
     settings: {
       get: (_moduleId, key) => store.get(key),
       set: (_moduleId, key, value) => {

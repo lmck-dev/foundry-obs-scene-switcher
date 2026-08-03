@@ -29,6 +29,7 @@ import {
   chatEventName,
   pushChat,
   resetChatFeed,
+  seedChatFeed,
   MAX_TEXT
 } from "../scripts/chat-feed.js";
 import { obs } from "../scripts/obs-client.js";
@@ -443,6 +444,115 @@ test("deleting a message that was never on the feed changes nothing", (t) => {
 
   assert.equal(forgetMessage("never-shown"), false);
   assert.equal(bufferedLines().length, 1);
+});
+
+/* -------------------------------------------- */
+/*  Seeding from the existing log               */
+/* -------------------------------------------- */
+
+test("switching the feed on fills it from the log that already exists", (t) => {
+  // Without this, ticking the box does nothing visible until somebody next
+  // speaks — which looks exactly like the panel being broken, and was.
+  setUp(t, {
+    messages: [
+      makeMessage({ id: "a", author: PLAYER, content: "first" }),
+      makeMessage({ id: "b", author: PLAYER, content: "second" })
+    ]
+  });
+
+  const seeded = seedChatFeed();
+
+  assert.equal(seeded, 2);
+  assert.deepEqual(bufferedLines().map((line) => line.text), ["first", "second"]);
+});
+
+test("seeding takes the newest messages, not the first in a long log", (t) => {
+  setUp(t, {
+    settings: { [SETTINGS.chatLines]: 2 },
+    messages: ["a", "b", "c", "d"].map((id) =>
+      makeMessage({ id, author: PLAYER, content: id })
+    )
+  });
+
+  seedChatFeed();
+
+  assert.deepEqual(bufferedLines().map((line) => line.text), ["c", "d"]);
+});
+
+test("seeding applies the same gate as a live message", (t) => {
+  setUp(t, {
+    messages: [
+      makeMessage({ id: "a", author: PLAYER, content: "public" }),
+      makeMessage({ id: "b", author: GM, whisper: ["someone"], content: "private" }),
+      makeMessage({ id: "c", author: GM, content: "gm, category off" })
+    ]
+  });
+
+  seedChatFeed();
+
+  assert.deepEqual(bufferedLines().map((line) => line.text), ["public"]);
+});
+
+test("widening the categories reveals messages already in the log", (t) => {
+  const { foundry } = setUp(t, {
+    messages: [makeMessage({ id: "a", author: GM, rolls: [{ formula: "1d20", total: 7 }] })]
+  });
+  seedChatFeed();
+  assert.equal(bufferedLines().length, 0);
+
+  foundry.store.set(SETTINGS.chatCategories, { ...ALL_CATEGORIES });
+  seedChatFeed();
+
+  assert.equal(bufferedLines().length, 1);
+});
+
+test("narrowing the categories retracts what no longer qualifies", (t) => {
+  const { foundry } = setUp(t, {
+    settings: { [SETTINGS.chatCategories]: ALL_CATEGORIES },
+    messages: [makeMessage({ id: "a", author: GM, content: "gm chatter" })]
+  });
+  seedChatFeed();
+  assert.equal(bufferedLines().length, 1);
+
+  foundry.store.set(SETTINGS.chatCategories, {});
+  seedChatFeed();
+
+  assert.equal(bufferedLines().length, 0);
+});
+
+test("seeding while the feed is off leaves it empty", (t) => {
+  setUp(t, {
+    settings: { [SETTINGS.chatEnabled]: false },
+    messages: [makeMessage({ id: "a", author: PLAYER, content: "hello" })]
+  });
+
+  assert.equal(seedChatFeed(), 0);
+  assert.equal(bufferedLines().length, 0);
+});
+
+test("one unreadable message in the log does not stop the rest seeding", (t) => {
+  const broken = makeMessage({ id: "bad", author: PLAYER });
+  Object.defineProperty(broken, "whisper", {
+    get() {
+      throw new Error("corrupt");
+    }
+  });
+  setUp(t, {
+    messages: [
+      broken,
+      makeMessage({ id: "ok", author: PLAYER, content: "still here" })
+    ]
+  });
+
+  seedChatFeed();
+
+  assert.deepEqual(bufferedLines().map((line) => line.text), ["still here"]);
+});
+
+test("seeding an empty log clears rather than throwing", (t) => {
+  setUp(t, { messages: [] });
+
+  assert.equal(seedChatFeed(), 0);
 });
 
 /* -------------------------------------------- */

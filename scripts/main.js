@@ -31,7 +31,7 @@ import {
   pushChat,
   recordMessage,
   forgetMessage,
-  resetChatFeed,
+  seedChatFeed,
   buildChatPayload,
   bufferedLines,
   chatEventName
@@ -183,9 +183,11 @@ function registerSettings() {
     type: Boolean,
     default: false,
     onChange: () => {
-      // Switching the feed off must clear what is already on screen, not just
-      // stop adding to it — a stale panel of chat is worse than none.
-      resetChatFeed();
+      // Seeding covers both directions: switching on fills the panel from the
+      // log that already exists rather than waiting for the next message, and
+      // switching off clears it, because a stale panel of chat is worse than
+      // none.
+      seedChatFeed();
       pushChat({ force: true });
     }
   });
@@ -414,6 +416,9 @@ Hooks.once("ready", () => {
   // Browser Sources reload whenever their scene becomes visible, and an event
   // sent while one was down is gone for good — so repeat the current state.
   // One timer for all three panels, so they refill together.
+  // Fill the chat panel from the existing log, so a Foundry restart mid-stream
+  // does not leave it blank until somebody speaks.
+  seedChatFeed();
   startHeartbeat([pushOverlay, pushChat, pushCombat]);
 });
 

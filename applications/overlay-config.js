@@ -15,7 +15,7 @@ import {
   resolveChatLines
 } from "../scripts/constants.js";
 import { pushOverlay, resetOverlayCache } from "../scripts/overlay-feed.js";
-import { pushChat, resetChatFeed } from "../scripts/chat-feed.js";
+import { pushChat, seedChatFeed } from "../scripts/chat-feed.js";
 import { pushCombat, resetCombatCache } from "../scripts/combat-feed.js";
 import { panelFilePath } from "../scripts/overlay-url-field.js";
 
@@ -148,9 +148,10 @@ export class OverlayConfig extends HandlebarsApplicationMixin(ApplicationV2) {
     resetCombatCache();
     pushOverlay({ force: true });
     pushCombat({ force: true });
-    // Narrowing the categories must retract what is already on screen, so the
-    // buffer is rebuilt from here on rather than re-filtered.
-    resetChatFeed();
+    // Re-derive the feed from the real chat log: narrowing the categories has
+    // to retract what no longer qualifies, and widening them should reveal what
+    // now does, without waiting for the next message.
+    seedChatFeed();
     pushChat({ force: true });
   }
 }

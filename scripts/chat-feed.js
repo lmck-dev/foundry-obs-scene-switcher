@@ -251,6 +251,45 @@ export function recordMessage(message) {
   return true;
 }
 
+/**
+ * Rebuild the feed from the chat log that already exists.
+ *
+ * Without this the buffer only ever fills from messages that arrive *after* the
+ * feed was switched on, so ticking the box does nothing visible until somebody
+ * next speaks or rolls — which is indistinguishable from the panel being
+ * broken, and cost a live debugging session to work out.
+ *
+ * It is also the right answer when the categories change: narrowing them has to
+ * retract what no longer qualifies, and widening them should reveal what now
+ * does, and both fall out of re-deriving the feed from the log.
+ *
+ * Walks backwards so it takes the *newest* qualifying messages rather than the
+ * first ones in a log that may be thousands long, then restores their order.
+ */
+export function seedChatFeed() {
+  buffer = [];
+  lastSent = null;
+  if (!feedEnabled()) return 0;
+
+  const messages = globalThis.game?.messages;
+  const all = messages?.contents ?? (Array.isArray(messages) ? messages : []);
+  const limit = resolveChatLines(getSetting(SETTINGS.chatLines));
+
+  const picked = [];
+  for (let i = all.length - 1; i >= 0 && picked.length < limit; i--) {
+    const message = all[i];
+    try {
+      if (mayShow(message)) picked.push(buildLine(message));
+    } catch {
+      // One unreadable message in the history must not stop the rest of the
+      // feed being seeded; it is simply left out.
+    }
+  }
+
+  buffer = picked.reverse();
+  return buffer.length;
+}
+
 /** Drop a deleted message, so retracting something at the table retracts it on stream. */
 export function forgetMessage(messageId) {
   if (!messageId) return false;
