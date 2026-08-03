@@ -16,42 +16,88 @@
   var DEFAULT_EVENT = "obsSceneSwitcherChat";
   var ROOT_ID = "obs-chat-root";
 
-  /** Ids rendered last time, so only genuinely new lines animate in. */
-  var previousIds = Object.create(null);
-
   /**
    * Render a payload into the feed.
    *
-   * The whole list is rebuilt from each payload rather than diffed. The feed is
-   * a handful of lines and arrives whole, so there is no state here to get out
-   * of step with the module's.
+   * Lines are matched to the nodes already on screen **by message id** rather
+   * than the list being rebuilt. This is the one page where that matters: its
+   * rows have an entrance animation, and a fresh node always replays it, so any
+   * rebuild — including the module's periodic re-send of unchanged state — puts
+   * the whole feed through its animation again. The character card and the
+   * tracker get away with rebuilding because nothing on them animates on
+   * insertion; chat cannot, so it does not rebuild.
    *
-   * The entrance animation is the one thing that cannot be rebuilt blindly: a
-   * fresh node always replays it, so a single new message would re-animate
-   * every line above it. Only ids that were not on screen last time get the
-   * class that animates.
+   * A node already showing exactly its line is left completely untouched: not
+   * re-created, not re-ordered, not even re-filled. That makes the panel
+   * immune to a repeated payload rather than merely defended against one.
    */
   function render(root, payload) {
     var lines = payload && payload.present === true && Array.isArray(payload.lines)
       ? payload.lines
       : [];
 
-    var seen = Object.create(null);
     var list = root.querySelector(".chat-lines");
-    C.clear(list);
-    lines.forEach(function (line) {
-      var id = String(line.id);
-      list.appendChild(renderLine(line, !previousIds[id]));
-      seen[id] = true;
+
+    // What is on screen right now, by id.
+    var existing = Object.create(null);
+    Array.prototype.forEach.call(list.children, function (node) {
+      if (node.dataset.id) existing[node.dataset.id] = node;
     });
-    previousIds = seen;
+
+    var wanted = Object.create(null);
+    lines.forEach(function (line, index) {
+      var id = String(line.id);
+      wanted[id] = true;
+
+      var node = existing[id];
+      if (node) {
+        // It has been on screen since the last render, so its entrance has
+        // already played. Dropping the class keeps it from replaying should the
+        // node ever have to move.
+        node.classList.remove("is-new");
+        fillLine(node, line, false);
+      } else {
+        node = renderLine(line, true);
+      }
+
+      // Only touch the DOM when this node is not already in the right place.
+      // Re-inserting a node restarts its animation, so "already correct" has
+      // to mean "leave it entirely alone".
+      if (list.children[index] !== node) {
+        list.insertBefore(node, list.children[index] || null);
+      }
+    });
+
+    // Anything left over has scrolled off the feed or was deleted.
+    Array.prototype.slice.call(list.children).forEach(function (node) {
+      if (!wanted[node.dataset.id]) list.removeChild(node);
+    });
 
     root.dataset.state = lines.length ? "shown" : "empty";
   }
 
   function renderLine(line, isNew) {
     var node = C.el("div", "chat-line");
+    node.dataset.id = String(line.id);
     if (isNew) node.classList.add("is-new");
+    fillLine(node, line, true);
+    return node;
+  }
+
+  /**
+   * Fill a line node's contents, skipping the work entirely when it already
+   * holds exactly this line. The signature is what makes a repeated payload
+   * free rather than merely harmless.
+   */
+  function fillLine(node, line, force) {
+    var signature = JSON.stringify(line);
+    if (!force && node.dataset.sig === signature) return;
+    node.dataset.sig = signature;
+    C.clear(node);
+    buildLineContents(node, line);
+  }
+
+  function buildLineContents(node, line) {
     if (line.category) node.dataset.category = String(line.category);
 
     var avatar = C.image(line.img, "chat-avatar");

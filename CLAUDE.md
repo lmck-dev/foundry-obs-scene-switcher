@@ -227,7 +227,7 @@ npm ci
 npm test          # node --test --test-timeout=5000 "test/**/*.test.js"
 ```
 
-366 tests covering `obs-client.js`, `scene-sync.js`, `override-button.js`,
+372 tests covering `obs-client.js`, `scene-sync.js`, `override-button.js`,
 `character-data.js`, `overlay-feed.js`, `chat-feed.js`, `combat-feed.js`,
 `migrate.js`, the
 settings-window decorations, all three overlay pages and the Handlebars
@@ -352,9 +352,21 @@ has no handshake. So the *page* is where an identical payload is dropped, in
 `common.js`'s `deliver()`, because only the page knows what it last managed to
 render. Without that, every heartbeat rebuilt the DOM and restarted every
 entrance animation and CSS transition, which on stream read as the panel
-flashing on a five-second timer. `chat.js` additionally tracks which line ids
-were on screen last render and only gives new ones the `is-new` class that
-animates, so one new message does not re-animate the whole feed.
+flashing on a five-second timer. **`chat.js` additionally matches lines to existing nodes by message id and never
+rebuilds the list**, because it is the only page whose rows animate on
+insertion. The tracker gets away with rebuilding its rows since nothing on them
+animates; chat cannot, and a rebuild there replays the whole feed's entrance.
+A node already showing exactly its line is left completely alone — not
+recreated, not re-ordered (`insertBefore` is skipped when the node is already
+in position, since re-inserting restarts a CSS animation), not even re-filled
+(`fillLine` compares a stored signature). Only genuinely new ids get `is-new`.
+
+The two layers are independent and both are tested: `deliver()` saves the work,
+the renderer makes the work harmless. The renderer's idempotence is tested by
+calling `render()` directly and counting `insertBefore`/`appendChild`/
+`removeChild` calls, because happy-dom cannot observe an animation restarting —
+and neither can headless Chrome, which never fires `animationstart` under
+`--disable-gpu`. Assert on the DOM mutation, not on the animation.
 
 A **Dice So Nice chromakey view** was scoped and deferred (2026-08-03). It
 cannot live on these pages: DSN's renderer only exists inside a real Foundry

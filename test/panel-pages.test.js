@@ -377,17 +377,100 @@ test("a changed payload does rebuild", (t) => {
   assert.equal(count(dom.root, ".chat-line"), 2);
 });
 
-test("only newly arrived lines animate in", (t) => {
-  // A single new message must not re-animate every line above it.
+test("re-rendering identical lines touches the DOM not at all", (t) => {
+  // Driven through render() rather than apply(), deliberately: apply() skips a
+  // payload identical to the last one, which would hide whether the renderer
+  // is idempotent on its own. Both layers exist and both are load-bearing —
+  // the outer one saves the work, this one makes the work harmless. Re-
+  // inserting a node restarts its CSS animation, which happy-dom cannot
+  // observe, so the mutation itself is what gets asserted.
+  const dom = chatPage(t);
+  const payload = chatPayload([LINE, { ...LINE, id: "m2", text: "second" }]);
+  dom.overlay.render(dom.root, payload);
+
+  const list = dom.root.querySelector(".chat-lines");
+  let mutations = 0;
+  for (const method of ["insertBefore", "appendChild", "removeChild"]) {
+    const original = list[method].bind(list);
+    list[method] = (...args) => {
+      mutations += 1;
+      return original(...args);
+    };
+  }
+
+  dom.overlay.render(dom.root, payload);
+
+  assert.equal(mutations, 0, "an unchanged feed re-arranged its nodes");
+});
+
+test("an unchanged line's contents are not rebuilt either", (t) => {
+  const dom = chatPage(t);
+  const payload = chatPayload([LINE]);
+  dom.overlay.render(dom.root, payload);
+  const text = dom.root.querySelector(".chat-text");
+
+  dom.overlay.render(dom.root, payload);
+
+  assert.equal(dom.root.querySelector(".chat-text") === text, true, "contents were rebuilt");
+});
+
+test("a new message leaves the lines above it untouched", (t) => {
+  // The invariant that keeps the feed from flashing: an existing line is the
+  // same DOM node afterwards, so its entrance animation cannot replay.
   const dom = chatPage(t);
   dom.instance.apply(chatPayload([LINE]));
-  assert.equal(count(dom.root, ".chat-line.is-new"), 1, "the first line should animate");
+  const first = dom.root.querySelector(".chat-line");
 
   dom.instance.apply(chatPayload([LINE, { ...LINE, id: "m2", text: "new" }]));
 
   assert.equal(count(dom.root, ".chat-line"), 2);
+  assert.equal(dom.root.children[0].children[0] === first, true, "the first line was recreated");
+});
+
+test("only the newly arrived line animates in", (t) => {
+  const dom = chatPage(t);
+  dom.instance.apply(chatPayload([LINE]));
+
+  dom.instance.apply(chatPayload([LINE, { ...LINE, id: "m2", text: "new" }]));
+
   assert.equal(count(dom.root, ".chat-line.is-new"), 1, "only the new line should animate");
   assert.equal(dom.root.querySelector(".chat-line.is-new").textContent.includes("new"), true);
+});
+
+test("a line whose content changes keeps its node rather than re-animating", (t) => {
+  // An edit or a re-seed re-sends the same id with different text.
+  const dom = chatPage(t);
+  dom.instance.apply(chatPayload([LINE]));
+  const node = dom.root.querySelector(".chat-line");
+
+  dom.instance.apply(chatPayload([{ ...LINE, text: "edited" }]));
+
+  assert.equal(dom.root.querySelector(".chat-line") === node, true, "the node was replaced");
+  assert.equal(dom.root.querySelector(".chat-text").textContent, "edited");
+  assert.equal(count(dom.root, ".chat-line.is-new"), 0, "an edit must not animate");
+});
+
+test("a line scrolling off the feed is removed", (t) => {
+  const dom = chatPage(t);
+  dom.instance.apply(chatPayload([LINE, { ...LINE, id: "m2" }, { ...LINE, id: "m3" }]));
+
+  dom.instance.apply(chatPayload([{ ...LINE, id: "m2" }, { ...LINE, id: "m3" }]));
+
+  assert.equal(count(dom.root, ".chat-line"), 2);
+  assert.equal(count(dom.root, '.chat-line[data-id="m1"]'), 0);
+});
+
+test("the feed keeps the order it was sent in", (t) => {
+  const dom = chatPage(t);
+  dom.instance.apply(chatPayload([LINE, { ...LINE, id: "m2" }]));
+
+  // Same ids, reversed — a re-seed can legitimately reorder.
+  dom.instance.apply(chatPayload([{ ...LINE, id: "m2" }, LINE]));
+
+  assert.deepEqual(
+    Array.from(dom.root.querySelectorAll(".chat-line")).map((n) => n.dataset.id),
+    ["m2", "m1"]
+  );
 });
 
 test("a line that leaves and returns animates again", (t) => {

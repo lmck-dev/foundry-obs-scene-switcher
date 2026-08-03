@@ -214,7 +214,7 @@ lang/en.json
 
 ## Status / testing
 
-- 366 unit tests run in CI on every push (`npm test`, Node 22). They cover the
+- 372 unit tests run in CI on every push (`npm test`, Node 22). They cover the
   obs-websocket handshake (cross-checked against the spec's example vector),
   every `resolveScene()` branch, the tracker button's DOM injection, the actor
   adapters, all three feeds' privacy gating, the settings-window decorations,
@@ -242,7 +242,9 @@ Add `?idle=hide` to the source URL to suppress the strip once you go live —
 which needs the URL box rather than the "Local file" tick, as with the other
 query parameters.
 
-The panels redraw only when something actually changes. The module re-sends the
+The panels redraw only when something actually changes, and the chat feed goes
+further: lines are matched to what is already on screen by message id, so an
+existing line is never rebuilt and never replays its entrance animation. The module re-sends the
 current state every few seconds so a Browser Source that reloaded refills on its
 own, and each page ignores a payload identical to what it is already showing —
 otherwise every animation restarts on that timer and the panel appears to flash.
