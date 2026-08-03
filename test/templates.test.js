@@ -149,6 +149,29 @@ test("every panel's toggle has a name and a hint in Settings", () => {
   }
 });
 
+test("the overlay settings window scrolls rather than running off the screen", () => {
+  // It renders with `height: "auto"`, so it grows with its content until the
+  // lower fieldsets are below the bottom of the screen and cannot be reached —
+  // which is exactly what adding the chat panel's fieldset did. Nothing else
+  // catches this: the window only lays out inside Foundry.
+  const config = readFileSync(
+    new URL("../applications/overlay-config.js", import.meta.url),
+    "utf8"
+  );
+  const css = readFileSync(new URL("../styles/module.css", import.meta.url), "utf8");
+
+  assert.match(
+    config,
+    /scrollable:\s*\[\s*"\.obs-overlay-config"\s*\]/,
+    "the form part must declare its scrollable region, or saving jumps to the top"
+  );
+
+  const rule = css.match(/\.obs-overlay-config\s*\{[^}]*\}/);
+  assert.ok(rule, "no rule bounding .obs-overlay-config");
+  assert.match(rule[0], /overflow-y:\s*auto/, "the form body must scroll");
+  assert.match(rule[0], /max-height:/, "the form body must be bounded, or it cannot scroll");
+});
+
 test("no translation key is defined twice", () => {
   // JSON silently keeps the last duplicate, so a stale copy can quietly win.
   const raw = readFileSync(new URL("../lang/en.json", import.meta.url), "utf8");

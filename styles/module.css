@@ -204,6 +204,18 @@ button.obs-overlay-url-copy {
 }
 
 /* Character overlay config application */
+
+/* The window grew a fieldset per panel, and with `height: "auto"` it simply
+   kept growing until the lower sections were off the bottom of the screen and
+   unreachable. Bound the form body and scroll it instead, so the Save button —
+   which is a separate part, rendered below this — always stays on screen. */
+.obs-scene-switcher.overlay-config .obs-overlay-config {
+  max-height: 62vh;
+  overflow-y: auto;
+  /* Room for the scrollbar so it never sits on top of the checkboxes. */
+  padding-right: 0.35rem;
+}
+
 .obs-scene-switcher.overlay-config .obs-overlay-config .hint {
   font-size: var(--font-size-12, 0.75rem);
   opacity: 0.8;

@@ -43,7 +43,14 @@ export class OverlayConfig extends HandlebarsApplicationMixin(ApplicationV2) {
   };
 
   static PARTS = {
-    form: { template: `modules/${MODULE_ID}/templates/overlay-config.hbs` },
+    // The form body scrolls (see module.css) because the window is taller than
+    // a screen once every panel has a fieldset. Declaring it scrollable keeps
+    // the scroll position across re-renders, so saving does not jump the user
+    // back to the top of a window they were halfway down.
+    form: {
+      template: `modules/${MODULE_ID}/templates/overlay-config.hbs`,
+      scrollable: [".obs-overlay-config"]
+    },
     footer: { template: "templates/generic/form-footer.hbs" }
   };
 
