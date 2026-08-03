@@ -17,7 +17,13 @@ export const SETTINGS = {
   overlayNpcFields: "overlayNpcFields",
   overlayNpcs: "overlayNpcs",
   overlayActors: "overlayActors",
-  overlayEventName: "overlayEventName"
+  overlayEventName: "overlayEventName",
+  chatEnabled: "chatEnabled",
+  chatCategories: "chatCategories",
+  chatLines: "chatLines",
+  chatEventName: "chatEventName",
+  combatEnabled: "combatEnabled",
+  combatEventName: "combatEventName"
 };
 
 /**
@@ -35,8 +41,68 @@ export const NPC_POLICY = {
   all: "all"
 };
 
-/** Default name of the CustomEvent the overlay page listens for. */
+/** Default name of the CustomEvent each overlay page listens for. */
 export const DEFAULT_OVERLAY_EVENT = "obsSceneSwitcherCharacter";
+export const DEFAULT_CHAT_EVENT = "obsSceneSwitcherChat";
+export const DEFAULT_COMBAT_EVENT = "obsSceneSwitcherCombat";
+
+/**
+ * What kind of thing a chat message is. Every message lands in exactly one of
+ * these, so a GM can let dice results through without also broadcasting the
+ * table's out-of-character chatter.
+ *
+ * `roll` wins over the message's style: a roll is a roll whether it was posted
+ * in character or not, and it is the category people actually reason about.
+ */
+export const CHAT_CATEGORIES = {
+  roll: "roll",
+  ic: "ic",
+  emote: "emote",
+  ooc: "ooc",
+  other: "other"
+};
+
+/**
+ * Which categories reach the stream, for **GM-authored messages only**.
+ *
+ * Messages a player wrote are always shown — they are the players' own words in
+ * a log the whole table can already read. The GM's are the ones worth choosing
+ * between, because the GM is also the author of every monster's attack roll and
+ * every module's status card. All default off: the quiet feed is the safe one,
+ * and an empty panel is an obvious problem where a leaked one is not.
+ */
+export const CHAT_CATEGORY_DEFAULTS = {
+  roll: false,
+  ic: false,
+  emote: false,
+  ooc: false,
+  other: false
+};
+
+/** How many messages the chat panel keeps on screen. */
+export const DEFAULT_CHAT_LINES = 8;
+
+/** Bound the line count: zero would blank the panel, and a huge value overflows it. */
+export const CHAT_LINES_MIN = 1;
+export const CHAT_LINES_MAX = 30;
+
+/** Fill in any category the stored setting predates, and drop ones it invented. */
+export const resolveChatCategories = (stored) => {
+  const merged = { ...CHAT_CATEGORY_DEFAULTS };
+  if (stored && typeof stored === "object") {
+    for (const key of Object.keys(CHAT_CATEGORY_DEFAULTS)) {
+      merged[key] = stored[key] === true;
+    }
+  }
+  return merged;
+};
+
+/** Clamp a stored line count into range, falling back on anything unreadable. */
+export const resolveChatLines = (stored) => {
+  const n = Math.trunc(Number(stored));
+  if (!Number.isFinite(n)) return DEFAULT_CHAT_LINES;
+  return Math.max(CHAT_LINES_MIN, Math.min(CHAT_LINES_MAX, n));
+};
 
 /**
  * Rows the stream overlay can show, and whether each is on by default.

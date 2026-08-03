@@ -18,13 +18,18 @@ scripts/scene-sync.js        combat/token → scene mapping, + resolveSubject()
 scripts/override-button.js   manual override control
 scripts/character-data.js    actor → overlay payload, per game system
 scripts/overlay-feed.js      pushes the current character to OBS
+scripts/chat-feed.js         filters + pushes the chat log to OBS
+scripts/combat-feed.js       pushes the turn order to OBS
 scripts/settings-highlight.js  auth-failure highlight in Settings
 scripts/settings-privacy.js   masks the port/password in Settings
-scripts/overlay-url-field.js  Browser Source URL under the overlay toggle
+scripts/overlay-url-field.js  each panel's file path under its own toggle
 scripts/constants.js
 applications/mapping-config.js + templates/mapping-config.hbs
 applications/overlay-config.js + templates/overlay-config.hbs
-overlay/overlay.html + overlay.js   loaded by an OBS Browser Source
+overlay/common.js                   helpers shared by all three pages
+overlay/overlay.html + overlay.js   character card
+overlay/chat.html    + chat.js      chat feed
+overlay/combat.html  + combat.js    combat tracker
 styles/module.css · lang/en.json
 .github/workflows/release.yml
 ```
@@ -118,6 +123,70 @@ selected=value localize=true}}`. The test's allowlist came from
 generic fallback). Supporting a new system means adding an adapter there and
 nothing else.
 
+## The three panels
+
+There are **three separate pages**, each its own Browser Source, not one page
+behind a `?panel=` switch. That is forced by the same OBS constraint as
+everything else here: **"Local file" hands the page no query string at all**, so
+anything behind one would push every user onto a typed `file:///…` address just
+to see a panel. Query parameters remain available for look-and-feel
+(`?accent=`, `&scale=`, `&anchor=`, `&event=`) because those are optional.
+
+`overlay/common.js` is a classic script the other three load first, via an
+ordinary second `<script>` tag. It holds `el`/`clear`/`show`/`image`,
+`SAFE_IMAGE`, and the shared `mount`/`readOptions`/`autoMount`. Each page's own
+script pulls it off `window.OBSOverlayCommon`. **Keep payload data going through
+`C.el(...)` / `textContent`** — a page that grew an `innerHTML` for payload data
+would undo the guarantee the module side is built around.
+
+Each feed owns a dedupe cache and is repeated by **one shared heartbeat**:
+`startHeartbeat([pushOverlay, pushChat, pushCombat])` in `main.js`. The heartbeat
+takes its feeds as an argument rather than importing them, because `chat-feed.js`
+and `combat-feed.js` both import from `overlay-feed.js` — reaching back for them
+would be a cycle.
+
+### chat-feed.js
+
+Two rules are not settings and must not become settings:
+
+1. **Whispers and blind rolls never leave the module.** `isPrivate()` is checked
+   *before* the author check in `mayShow()`, and that ordering is load-bearing —
+   "player messages are always on" must not outrank "whispers never are". It is
+   mutation-tested in both directions.
+2. **Markup never leaves the module.** `stripHtml()` flattens message content
+   through `DOMParser` (inert — no image fetches, unlike an `innerHTML` on a
+   detached div) and **removes `<script>`/`<style>` first**, because
+   `textContent` counts their *contents* as text and would otherwise read a
+   message's embedded CSS onto the stream.
+
+Past that: a message authored by a non-GM always goes through; a GM-authored one
+needs its category ticked. Categories are `roll | ic | emote | ooc | other`, and
+**`roll` wins over the style** — a roll is a roll however it was posted. An
+unknown author falls to the GM's rules, so it cannot be a way past the gate.
+`resolveChatCategories()` coerces every stored value with `=== true`, which is
+what lets `mayShow` trust a plain `=== true` further down; that coercion is
+mutation-tested, so do not loosen it to `Boolean()`.
+
+Foundry field names verified against the real 14.365 install
+(`common/documents/chat-message.mjs`): `author`, `whisper` (array of user *ids*),
+`blind`, `rolls`, `style`, with `CHAT_MESSAGE_STYLES` = OTHER 0 / OOC 1 / IC 2 /
+EMOTE 3. The v12 `user`/`type` names are read as fallbacks.
+
+### combat-feed.js
+
+Reuses `mayAppear()` and `visibleFields()` from `overlay-feed.js` rather than
+inventing a second gate — one decision about which NPCs are stream-safe. The
+**one deliberate difference**: failing the gate hides the card entirely, but the
+tracker still lists the combatant, because a turn order with a gap in it is not
+a turn order. A gated NPC keeps its **name and initiative** (already in every
+player's own tracker) and loses its **portrait and hit points**. Hidden
+combatants are dropped outright, by their own flag *or* their token's.
+
+Iterate `combat.turns` — Foundry's own sorted order with its tie-breaks already
+applied. Re-sorting it here would only find new ways to disagree with the table.
+`initiative: null` means "has not rolled"; zero is a legitimate initiative and
+must survive as zero.
+
 ## Build / test
 
 There is **no build step**. Tests use `node:test`; `happy-dom` is the only
@@ -128,10 +197,11 @@ npm ci
 npm test          # node --test --test-timeout=5000 "test/**/*.test.js"
 ```
 
-225 tests covering `obs-client.js`, `scene-sync.js`, `override-button.js`,
-`character-data.js`, `overlay-feed.js`, the settings-window decorations, the
-overlay page and the Handlebars templates, run in CI on every push and PR
-(`.github/workflows/test.yml`, Node 22; also verified on 24).
+344 tests covering `obs-client.js`, `scene-sync.js`, `override-button.js`,
+`character-data.js`, `overlay-feed.js`, `chat-feed.js`, `combat-feed.js`, the
+settings-window decorations, all three overlay pages and the Handlebars
+templates, run in CI on every push and PR (`.github/workflows/test.yml`,
+Node 22; also verified on 24).
 
 - `test/helpers/mock-websocket.js` — a scriptable WebSocket that lets a test
   drive the obs-websocket handshake frame by frame.
@@ -141,9 +211,13 @@ overlay page and the Handlebars templates, run in CI on every push and PR
   `lang/en.json`, so a missing translation key fails a test instead of
   rendering a raw key to the user.
 - `test/helpers/dom.js` — a happy-dom document, a Combat Tracker builder, and
-  `loadOverlayPage()`, which pulls the skeleton out of the real `overlay.html`
-  and evaluates the real `overlay.js` against it. A class the script looks for
-  but the page stopped providing fails a test instead of appearing on stream.
+  `loadOverlayPage(panel)`, which pulls the skeleton out of the real `.html` and
+  evaluates the real `common.js` + that page's script against it, in the order
+  the `<script>` tags give. `panel` is `"character"` (default), `"chat"` or
+  `"combat"`. A class the script looks for but the page stopped providing fails
+  a test instead of appearing on stream. `installDom()` also installs
+  `DOMParser`, which `stripHtml()` needs — without it a test would silently
+  exercise the regex fallback instead of the real path.
 
 Things worth knowing before editing the suite:
 
@@ -170,13 +244,28 @@ thin wiring over logic that is covered.
 
 The suite is mutation-tested: 29 deliberate breakages of the original code
 (wrong auth ordering, inverted combat check, dropped debounce reset, removed
-stale-socket guard, removed GM gate, append instead of prepend, …) and 20 of the
+stale-socket guard, removed GM gate, append instead of prepend, …), 20 of the
 overlay code (hidden tokens broadcast, NPC gate removed, dedupe defeating the
-heartbeat, names rendered as markup, …) were each confirmed to fail it. Five
-early versions of these tests passed against broken code before being rewritten
-— two of them in the overlay suite, both passing for a reason unrelated to what
-they claimed to check. **If you add a test, break the code and check it actually
-fails.**
+heartbeat, names rendered as markup, …) and **35 of the chat/combat panel code**
+(whispers no longer private, the author check hoisted above the privacy check,
+script contents read as message text, hidden combatants reaching the tracker,
+gated NPCs keeping their portraits, an unrolled initiative becoming zero, a page
+appending instead of rebuilding, …) were each confirmed to fail it.
+
+Of those 35, **34 were caught and one is a provable equivalent mutant**
+(`categories[…] === true` → `!== false`; `resolveChatCategories` normalises
+every value to a boolean first, so the two cannot differ — the structural test
+"every category the module can classify has a default" is what keeps that true).
+
+**Five early versions of these tests passed against broken code before being
+rewritten** — two in the overlay suite, and one in the chat suite: it claimed to
+prove a failed send is retried, and would have passed with the retry deleted,
+because the send it exercised was the *first* one and so had nothing cached to
+compare against. Rewriting it meant sending successfully first, failing second,
+then returning the feed to the state that was last delivered. The mutation run
+also found two places with no test at all rather than a wrong one (the tracker
+honouring the portrait row setting; loose coercion of a stored category value).
+**If you add a test, break the code and check it actually fails.**
 
 `package.json` exists so Node treats `scripts/*.js` as ES modules and to hold
 the dev dependency. Foundry ignores it, and the release zip's allowlist
@@ -191,6 +280,24 @@ the settings UI and the connection indicator all behaved correctly in live play.
 The stream character overlay is built, unit-tested, and **confirmed rendering in
 a real OBS Browser Source** (2026-07-29). It lives on the pushed branch
 `stream-character-overlay`, unmerged while the author lives with it.
+
+The **chat feed and combat tracker** panels are built and unit-tested on
+`stream-chat-combat-panels` (branched off `stream-character-overlay`, so that
+one has to land first). They have **not yet been run in a real OBS** — the
+Foundry APIs they read were verified against the 14.365 install on the external
+drive, but nothing has been rendered in a Browser Source. Treat "it works" as
+unproven until it has.
+
+A **Dice So Nice chromakey view** was scoped and deferred (2026-08-03). It
+cannot live on these pages: DSN's renderer only exists inside a real Foundry
+client, and these are `file://` classic scripts with no three.js and no socket.
+The workable route, if it is picked up, is a *second* Foundry client in a
+Browser Source logged in as a dedicated user, with module-injected CSS hiding
+the board and the UI and painting the body a key colour — DSN builds a
+`div#dice-box-canvas` on `document.body` with a **transparent** WebGL context
+(`alpha: true`) and broadcasts rolls over the `module.dice-so-nice` socket, so
+every connected client draws them. Costs: a spare user seat, a one-time login
+through OBS's Interact window, and a second WebGL client (stop the PIXI ticker).
 
 Outstanding: submit the manifest to the Foundry package registry via the
 foundryvtt.com admin panel.

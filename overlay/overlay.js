@@ -13,35 +13,16 @@
 (function () {
   "use strict";
 
+  var C = window.OBSOverlayCommon;
   var DEFAULT_EVENT = "obsSceneSwitcherCharacter";
 
-  /** Only these can appear in an <img src>. Keeps payload data out of URL schemes. */
-  var SAFE_IMAGE = /^(https?:|data:image\/|file:|\/|[\w.-]+\/)/i;
+  var SAFE_IMAGE = C.SAFE_IMAGE;
+  var clear = C.clear;
+  var el = C.el;
+  var show = C.show;
 
   function readOptions(search) {
-    var params = new URLSearchParams(search || "");
-    return {
-      event: params.get("event") || DEFAULT_EVENT,
-      accent: params.get("accent") || null,
-      scale: parseFloat(params.get("scale")) || null,
-      anchor: params.get("anchor") === "top" ? "top" : "bottom"
-    };
-  }
-
-  function clear(node) {
-    while (node.firstChild) node.removeChild(node.firstChild);
-  }
-
-  /** An element with text — used everywhere so payload data is never parsed as HTML. */
-  function el(tag, className, text) {
-    var node = document.createElement(tag);
-    if (className) node.className = className;
-    if (text !== undefined && text !== null) node.textContent = String(text);
-    return node;
-  }
-
-  function show(node, visible) {
-    node.hidden = !visible;
+    return C.readOptions(search, DEFAULT_EVENT);
   }
 
   function chip(label, value) {
@@ -173,36 +154,9 @@
     show(wrap, conditions.length > 0);
   }
 
-  /** Apply the look-and-feel query parameters to the page. */
-  function applyOptions(root, options) {
-    if (options.accent) root.style.setProperty("--accent", options.accent);
-    if (options.scale) root.style.setProperty("--scale", String(options.scale));
-    root.dataset.anchor = options.anchor;
-  }
-
-  /**
-   * Wire a root element to the event stream and return a handle.
-   * Listening on `window` is where obs-browser dispatches its events.
-   */
+  /** Wire a root element to the event stream and return a handle. */
   function mount(root, options) {
-    var opts = options || readOptions(typeof location !== "undefined" ? location.search : "");
-    applyOptions(root, opts);
-    render(root, null);
-
-    var handler = function (event) {
-      render(root, event.detail);
-    };
-    window.addEventListener(opts.event, handler);
-
-    return {
-      eventName: opts.event,
-      apply: function (payload) {
-        render(root, payload);
-      },
-      destroy: function () {
-        window.removeEventListener(opts.event, handler);
-      }
-    };
+    return C.mount(root, render, DEFAULT_EVENT, options);
   }
 
   window.OBSOverlay = {
@@ -212,14 +166,8 @@
     mount: mount
   };
 
-  function autoMount() {
+  C.autoMount(function () {
     var root = document.getElementById("obs-overlay-root");
     if (root) window.OBSOverlay.instance = mount(root);
-  }
-
-  if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", autoMount);
-  } else {
-    autoMount();
-  }
+  });
 })();

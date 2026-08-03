@@ -1,0 +1,124 @@
+/**
+ * Helpers shared by the three overlay pages.
+ *
+ * Deliberately a classic script, like the pages that use it: a Browser Source
+ * loads these from a local file, and `file://` blocks module imports, so
+ * `type="module"` would leave every page silently dead. Each page pulls this in
+ * with an ordinary `<script>` tag before its own, and reads it off
+ * `window.OBSOverlayCommon`.
+ *
+ * The one rule every helper here exists to keep: **payload data becomes text
+ * nodes, never markup**. The module flattens chat HTML before it sends it, and
+ * nothing on this side ever puts a payload string anywhere but `textContent`.
+ */
+(function () {
+  "use strict";
+
+  /** Only these can appear in an <img src>. Keeps payload data out of URL schemes. */
+  var SAFE_IMAGE = /^(https?:|data:image\/|file:|\/|[\w.-]+\/)/i;
+
+  /** Remove every child of a node, ready to re-render into it. */
+  function clear(node) {
+    while (node.firstChild) node.removeChild(node.firstChild);
+  }
+
+  /** An element with text — used everywhere so payload data is never parsed as HTML. */
+  function el(tag, className, text) {
+    var node = document.createElement(tag);
+    if (className) node.className = className;
+    if (text !== undefined && text !== null) node.textContent = String(text);
+    return node;
+  }
+
+  function show(node, visible) {
+    node.hidden = !visible;
+  }
+
+  /**
+   * An <img> for a payload-supplied URL, or null if the URL is not one we are
+   * willing to load. Callers treat null as "no picture", never as an error.
+   */
+  function image(src, className) {
+    if (!src || !SAFE_IMAGE.test(src)) return null;
+    var node = el("img", className);
+    node.src = src;
+    node.alt = "";
+    return node;
+  }
+
+  /**
+   * Look-and-feel options from the query string.
+   *
+   * Note that OBS's "Local file" tick gives no query string at all — a page that
+   * needs one has to be addressed as a typed `file:///…` URL instead. That is
+   * why the panels are separate files rather than `?panel=` on one file: the
+   * easy path in OBS has to work without any of this.
+   */
+  function readOptions(search, defaultEvent) {
+    var params = new URLSearchParams(search || "");
+    return {
+      event: params.get("event") || defaultEvent,
+      accent: params.get("accent") || null,
+      scale: parseFloat(params.get("scale")) || null,
+      anchor: params.get("anchor") === "top" ? "top" : "bottom"
+    };
+  }
+
+  /** Apply the look-and-feel options to a page's root element. */
+  function applyOptions(root, options) {
+    if (options.accent) root.style.setProperty("--accent", options.accent);
+    if (options.scale) root.style.setProperty("--scale", String(options.scale));
+    root.dataset.anchor = options.anchor;
+  }
+
+  /**
+   * Wire a root element to one event name and return a handle.
+   *
+   * Listening on `window` is where obs-browser dispatches its events. The handle
+   * exposes `apply` so a test can drive the renderer directly, with no OBS and
+   * no WebSocket in the loop.
+   */
+  function mount(root, render, defaultEvent, options) {
+    var opts =
+      options ||
+      readOptions(typeof location !== "undefined" ? location.search : "", defaultEvent);
+    applyOptions(root, opts);
+    render(root, null);
+
+    var handler = function (event) {
+      render(root, event.detail);
+    };
+    window.addEventListener(opts.event, handler);
+
+    return {
+      eventName: opts.event,
+      apply: function (payload) {
+        render(root, payload);
+      },
+      destroy: function () {
+        window.removeEventListener(opts.event, handler);
+      }
+    };
+  }
+
+  /** Mount once the document has a body to mount into. */
+  function autoMount(start) {
+    if (document.readyState === "loading") {
+      document.addEventListener("DOMContentLoaded", start);
+    } else {
+      start();
+    }
+  }
+
+  window.OBSOverlayCommon = {
+    SAFE_IMAGE: SAFE_IMAGE,
+    clear: clear,
+    el: el,
+    show: show,
+    image: image,
+    readOptions: readOptions,
+    applyOptions: applyOptions,
+    mount: mount,
+    autoMount: autoMount
+  };
+})();

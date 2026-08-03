@@ -13,6 +13,24 @@
       </div>
       <p class="hint">{{localize "foundry-obs-scene-switcher.overlay.urlHint"}}</p>
     </div>
+
+    <div class="form-group">
+      <label for="obs-chat-url">{{localize "foundry-obs-scene-switcher.chat.url"}}</label>
+      <div class="form-fields">
+        <input type="text" id="obs-chat-url" class="overlay-url" readonly
+               value="{{chatFilePath}}" />
+      </div>
+      <p class="hint">{{localize "foundry-obs-scene-switcher.chat.urlHint"}}</p>
+    </div>
+
+    <div class="form-group">
+      <label for="obs-combat-url">{{localize "foundry-obs-scene-switcher.combat.url"}}</label>
+      <div class="form-fields">
+        <input type="text" id="obs-combat-url" class="overlay-url" readonly
+               value="{{combatFilePath}}" />
+      </div>
+      <p class="hint">{{localize "foundry-obs-scene-switcher.combat.urlHint"}}</p>
+    </div>
   </fieldset>
 
   <fieldset>
@@ -48,6 +66,32 @@
         </select>
       </div>
       <p class="hint">{{localize "foundry-obs-scene-switcher.overlay.npcs.hint"}}</p>
+    </div>
+  </fieldset>
+
+  <fieldset>
+    <legend>{{localize "foundry-obs-scene-switcher.chat.legend"}}</legend>
+    <p class="hint">{{localize "foundry-obs-scene-switcher.chat.hint"}}</p>
+
+    <div class="chat-categories">
+      {{#each chatCategories}}
+      <div class="form-group">
+        <label>{{localize this.label}}</label>
+        <div class="form-fields">
+          <input type="checkbox" name="chatCategories.{{this.key}}" {{checked this.enabled}} />
+        </div>
+        <p class="hint">{{localize this.hint}}</p>
+      </div>
+      {{/each}}
+    </div>
+
+    <div class="form-group">
+      <label for="obs-chat-lines">{{localize "foundry-obs-scene-switcher.chat.lines"}}</label>
+      <div class="form-fields">
+        <input type="number" id="obs-chat-lines" name="chatLines" value="{{chatLines}}"
+               min="{{chatLinesMin}}" max="{{chatLinesMax}}" step="1" />
+      </div>
+      <p class="hint">{{localize "foundry-obs-scene-switcher.chat.linesHint"}}</p>
     </div>
   </fieldset>
 

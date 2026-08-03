@@ -202,10 +202,18 @@ export async function pushOverlay({ force = false } = {}) {
   }
 }
 
-/** Re-send periodically so a Browser Source that loads later still fills in. */
-export function startHeartbeat() {
+/**
+ * Re-send periodically so a Browser Source that loads later still fills in.
+ *
+ * Takes the feeds to repeat rather than knowing them, because the chat and
+ * combat feeds import from this file — reaching back for them here would be a
+ * cycle. They share one timer so the panels refill together.
+ */
+export function startHeartbeat(feeds = [pushOverlay]) {
   stopHeartbeat();
-  heartbeat = setInterval(() => pushOverlay({ force: true }), HEARTBEAT_MS);
+  heartbeat = setInterval(() => {
+    for (const push of feeds) push({ force: true });
+  }, HEARTBEAT_MS);
 }
 
 export function stopHeartbeat() {

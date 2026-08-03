@@ -12,7 +12,13 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync, readdirSync } from "node:fs";
 
-import { MODULE_ID, NPC_POLICY, OVERLAY_FIELDS } from "../scripts/constants.js";
+import {
+  MODULE_ID,
+  NPC_POLICY,
+  OVERLAY_FIELDS,
+  CHAT_CATEGORY_DEFAULTS
+} from "../scripts/constants.js";
+import { PANELS } from "../scripts/overlay-url-field.js";
 
 const TEMPLATE_DIR = new URL("../templates/", import.meta.url);
 
@@ -109,6 +115,37 @@ test("every overlay field has a label", () => {
   for (const field of Object.keys(OVERLAY_FIELDS)) {
     const key = `${MODULE_ID}.overlay.field.${field}`;
     assert.ok(key in TRANSLATIONS, `missing translation: ${key}`);
+  }
+});
+
+test("every chat category has a label and a hint", () => {
+  // Both keys are built by string interpolation in overlay-config.js, so a
+  // renamed category would otherwise render raw keys in the settings window.
+  for (const category of Object.keys(CHAT_CATEGORY_DEFAULTS)) {
+    for (const suffix of ["", "Hint"]) {
+      const key = `${MODULE_ID}.chat.category.${category}${suffix}`;
+      assert.ok(key in TRANSLATIONS, `missing translation: ${key}`);
+    }
+  }
+});
+
+test("every panel has a Browser Source label and hint", () => {
+  // overlay-url-field.js builds these from the setting name, so a panel added
+  // without its strings would put a raw key under its toggle in Settings.
+  for (const panel of PANELS) {
+    for (const suffix of ["url", "urlHint"]) {
+      const key = `${MODULE_ID}.settings.${panel.setting}.${suffix}`;
+      assert.ok(key in TRANSLATIONS, `missing translation: ${key}`);
+    }
+  }
+});
+
+test("every panel's toggle has a name and a hint in Settings", () => {
+  for (const panel of PANELS) {
+    for (const suffix of ["name", "hint"]) {
+      const key = `${MODULE_ID}.settings.${panel.setting}.${suffix}`;
+      assert.ok(key in TRANSLATIONS, `missing translation: ${key}`);
+    }
   }
 });
 

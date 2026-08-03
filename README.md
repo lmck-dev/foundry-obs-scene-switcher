@@ -1,8 +1,8 @@
 # OBS Scene Switcher — Foundry VTT module
 
 Automatically switches OBS scenes based on combat state, the focused token, and
-the active combat turn, and can put a live character card on your stream. Built
-for DMs streaming or running remote games.
+the active combat turn, and can put a live character card, a chat feed and the
+turn order on your stream. Built for DMs streaming or running remote games.
 
 Connects **directly** to OBS's built-in `obs-websocket` server from the Foundry
 browser client — no companion OBS-side plugin required.
@@ -121,6 +121,60 @@ restyle any part of the card without editing files or touching the URL.
 perception and conditions. Other systems fall back to a generic reading —
 portrait, name, and usually a health bar — rather than failing.
 
+## Chat feed
+
+A second Browser Source showing the tail of the chat log — who said it, what
+they said, and dice results with their formula and total.
+
+1. Tick **Stream Chat Feed** in the module settings; the file path appears
+   underneath with a copy button.
+2. In OBS: **Sources → + → Browser**, tick **Local file**, browse to
+   `overlay/chat.html`. Around **380 × 500** suits a column down one side.
+
+**Whispers and blind rolls are never sent.** There is no setting for that —
+a toggle that could put your whispers on a live stream is one that will
+eventually be left on by accident. Message text is also flattened to plain text
+inside Foundry before it is sent, so the page is never handed markup.
+
+Beyond that, **your players' messages always appear** — they are the players'
+own words in a log the whole table can already read. **Yours are opted in per
+category**, because as GM you are also the author of every monster's attack
+roll and every module's status card:
+
+| Category | What it covers |
+| --- | --- |
+| Your dice rolls | Initiative, attacks and saves you roll, including every NPC's |
+| Your in-character speech | Messages posted while speaking as an NPC |
+| Your emotes | Scene description posted with `/emote` |
+| Your out-of-character chat | Table talk posted as yourself |
+| Module and system cards | Item cards, module notices, update banners — usually the noisiest |
+
+All default **off**, so the feed starts quiet and you open it up deliberately.
+**Messages on screen** sets how many are kept before older ones scroll off.
+
+Deleting a message in Foundry retracts it from the stream too.
+
+## Combat tracker
+
+A third Browser Source showing the turn order, with whoever is up highlighted.
+It hides itself when combat ends.
+
+1. Tick **Stream Combat Tracker**; the file path appears underneath.
+2. In OBS: **Sources → + → Browser**, **Local file**, `overlay/combat.html`.
+   Around **320 × 420** suits a side column.
+
+It reuses the character card's privacy rules rather than adding a second set:
+
+- **Combatants hidden from players never appear.**
+- **Player characters** get portrait, initiative and a health bar.
+- **NPCs** get their name and initiative — which every player's own tracker
+  already shows — and nothing else, unless you have opted them in via the
+  **Card** column or the **Which NPCs may appear** rule. Even then their hit
+  points stay off until the NPC **Hit points** row is ticked.
+
+A combatant who has not rolled yet shows no initiative rather than a zero, and
+defeated combatants are struck through rather than removed.
+
 ## Manual override
 
 A **OBS Sync: On/Off** button is injected into the Combat Tracker. Toggle it off
@@ -138,16 +192,20 @@ scripts/
   override-button.js        Combat Tracker toggle button
   character-data.js         actor -> overlay payload, per game system
   overlay-feed.js           pushes the current character to OBS
+  chat-feed.js              filters and pushes the chat log to OBS
+  combat-feed.js            pushes the turn order to OBS
   settings-highlight.js     auth-failure highlight in Settings
   settings-privacy.js       masks the port/password in Settings
-  overlay-url-field.js      overlay file location under the toggle
+  overlay-url-field.js      each panel's file location under its toggle
   main.js                   settings registration + hook wiring (entry point)
 applications/
   mapping-config.js         ApplicationV2 settings submenu
   overlay-config.js         ApplicationV2 overlay settings submenu
-overlay/
-  overlay.html              the page an OBS Browser Source loads
-  overlay.js                renders the character card
+overlay/                    the pages OBS Browser Sources load
+  common.js                 helpers shared by all three pages
+  overlay.html + overlay.js the character card
+  chat.html    + chat.js    the chat feed
+  combat.html  + combat.js  the combat tracker
 templates/*.hbs
 styles/module.css
 lang/en.json
@@ -155,14 +213,16 @@ lang/en.json
 
 ## Status / testing
 
-- 225 unit tests run in CI on every push (`npm test`, Node 22). They cover the
+- 344 unit tests run in CI on every push (`npm test`, Node 22). They cover the
   obs-websocket handshake (cross-checked against the spec's example vector),
   every `resolveScene()` branch, the tracker button's DOM injection, the actor
-  adapters, the overlay feed's privacy gating, the settings-window decorations,
-  the overlay page itself, and the Handlebars templates.
+  adapters, all three feeds' privacy gating, the settings-window decorations,
+  the three overlay pages themselves, and the Handlebars templates.
 - Scene switching has been run in a live game and worked as intended.
 - The character overlay has been rendered in a real OBS Browser Source and
   behaved as intended.
+- **The chat feed and combat tracker are unit-tested but have not yet been run
+  in a real OBS.**
 
 ## Out of scope
 
