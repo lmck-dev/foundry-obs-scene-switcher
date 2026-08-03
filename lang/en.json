@@ -112,5 +112,6 @@
   "foundry-obs-scene-switcher.button.tooltip": "Toggle automatic OBS scene switching. When off, OBS is left alone so you can control scenes manually.",
   "foundry-obs-scene-switcher.button.problemTooltip": "OBS scene switching is enabled but not working: {reason}. Click to toggle sync; check the module settings to fix the connection.",
 
-  "foundry-obs-scene-switcher.notify.connectFailed": "OBS Scene Switcher: could not connect to OBS ({error}). Check host/port/password in the module settings."
+  "foundry-obs-scene-switcher.notify.connectFailed": "OBS Scene Switcher: could not connect to OBS ({error}). Check host/port/password in the module settings.",
+  "foundry-obs-scene-switcher.notify.selfTest": "Test payload sent to all three overlay pages. Anything that stays blank is not receiving from OBS."
 }

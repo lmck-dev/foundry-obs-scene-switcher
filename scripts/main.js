@@ -23,18 +23,25 @@ import {
   pushOverlay,
   refreshIfCurrent,
   resetOverlayCache,
-  startHeartbeat
+  startHeartbeat,
+  buildOverlayPayload,
+  overlayEventName
 } from "./overlay-feed.js";
 import {
   pushChat,
   recordMessage,
   forgetMessage,
-  resetChatFeed
+  resetChatFeed,
+  buildChatPayload,
+  bufferedLines,
+  chatEventName
 } from "./chat-feed.js";
 import {
   pushCombat,
   refreshIfInCombat,
-  resetCombatCache
+  resetCombatCache,
+  buildCombatPayload,
+  combatEventName
 } from "./combat-feed.js";
 import { MappingConfig } from "../applications/mapping-config.js";
 import { OverlayConfig } from "../applications/overlay-config.js";
@@ -287,9 +294,110 @@ function reconnect() {
 /*  Hook wiring                                 */
 /* -------------------------------------------- */
 
+/**
+ * What the module exposes on `game.modules.get(MODULE_ID).api`.
+ *
+ * Foundry loads these files as ES modules, so nothing in them is reachable from
+ * the console — which meant that when a panel came up blank there was no way to
+ * ask the module what it thought it was sending, only to guess from the outside.
+ * This is that answer: `diagnose()` reports every gate and the exact payload
+ * each feed would emit right now, read from the **live** instances rather than a
+ * fresh import (a dynamic `import()` gets a second copy of the module, with its
+ * own empty chat buffer, and quietly reports the wrong thing).
+ */
+function buildApi() {
+  return {
+    obs,
+    pushOverlay,
+    pushChat,
+    pushCombat,
+    buildOverlayPayload,
+    buildChatPayload,
+    buildCombatPayload,
+    bufferedLines,
+
+    /** One call that answers "why is my panel blank?". */
+    diagnose() {
+      const gates = {
+        isGM: Boolean(game.user?.isGM),
+        obsConnected: obs.connected,
+        obsStatus: obs.status,
+        syncEnabled: getSetting(SETTINGS.syncEnabled),
+        overlayEnabled: getSetting(SETTINGS.overlayEnabled),
+        chatEnabled: getSetting(SETTINGS.chatEnabled),
+        combatEnabled: getSetting(SETTINGS.combatEnabled),
+        chatCategories: getSetting(SETTINGS.chatCategories),
+        chatBuffered: bufferedLines().length,
+        combatRunning: Boolean(game.combat),
+        eventNames: {
+          character: overlayEventName(),
+          chat: chatEventName(),
+          combat: combatEventName()
+        }
+      };
+
+      // Build each payload defensively: the point of this is to survive one
+      // feed being broken and still report on the other two.
+      const payloads = {};
+      for (const [name, build] of [
+        ["character", buildOverlayPayload],
+        ["chat", buildChatPayload],
+        ["combat", buildCombatPayload]
+      ]) {
+        try {
+          payloads[name] = build();
+        } catch (err) {
+          payloads[name] = { error: err.message };
+        }
+      }
+
+      console.log(`${MODULE_ID} | gates`, gates);
+      console.log(`${MODULE_ID} | payloads`, payloads);
+      return { gates, payloads };
+    },
+
+    /**
+     * Send a payload to every panel that OBS cannot possibly refuse, bypassing
+     * the gates entirely. If this reaches the Browser Sources, the transport and
+     * the pages are fine and the problem is a gate; if it does not, it is not.
+     */
+    async selfTest() {
+      const sent = {};
+      const probes = [
+        [overlayEventName(), { v: 1, present: true, actorId: "self-test", name: "Self test",
+          subtitle: "If you can see this, the transport works", show: { portrait: false } }],
+        [chatEventName(), { v: 1, present: true, lines: [{ id: "self-test", category: "other",
+          alias: "Self test", img: null, text: "If you can see this, the transport works",
+          rolls: [] }] }],
+        [combatEventName(), { v: 1, present: true, round: 1, started: true,
+          combatants: [{ id: "self-test", name: "Self test", initiative: 20, active: true,
+            defeated: false, img: null, hp: null }] }]
+      ];
+
+      for (const [event, payload] of probes) {
+        try {
+          await obs.emitBrowserEvent(event, payload);
+          sent[event] = "sent";
+        } catch (err) {
+          sent[event] = `FAILED: ${err.message}`;
+        }
+      }
+
+      console.log(`${MODULE_ID} | self test`, sent);
+      ui.notifications?.info(game.i18n.localize(`${MODULE_ID}.notify.selfTest`));
+      return sent;
+    }
+  };
+}
+
 Hooks.once("init", () => {
   log("Initialising");
   registerSettings();
+
+  // Exposed at init so it is available even on a client that bails out of the
+  // ready hook — a non-GM asking why they see nothing is a fair question.
+  const module = game.modules.get(MODULE_ID);
+  if (module) module.api = buildApi();
 });
 
 Hooks.once("ready", () => {
