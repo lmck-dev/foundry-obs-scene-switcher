@@ -18,6 +18,7 @@ export const SETTINGS = {
   overlayNpcs: "overlayNpcs",
   overlayActors: "overlayActors",
   overlayEventName: "overlayEventName",
+  settingsVersion: "settingsVersion",
   chatEnabled: "chatEnabled",
   chatCategories: "chatCategories",
   chatLines: "chatLines",
@@ -68,16 +69,36 @@ export const CHAT_CATEGORIES = {
  * Messages a player wrote are always shown — they are the players' own words in
  * a log the whole table can already read. The GM's are the ones worth choosing
  * between, because the GM is also the author of every monster's attack roll and
- * every module's status card. All default off: the quiet feed is the safe one,
- * and an empty panel is an obvious problem where a leaked one is not.
+ * every module's status card.
+ *
+ * **All default on.** They defaulted off originally, on the reasoning that a
+ * quiet feed is the safe one — but that was the wrong trade. Privacy is already
+ * guaranteed by the whisper and blind-roll exclusions, which no setting can
+ * switch off, so a closed category costs content rather than protecting
+ * anything. What it actually produced was a panel that was blank on arrival and
+ * indistinguishable from a broken one, and a GM's own dice rolls — the single
+ * most useful thing on a stream — missing by default. Narrowing the feed is now
+ * something you do because it is noisy, not something you must do before it
+ * works at all.
  */
 export const CHAT_CATEGORY_DEFAULTS = {
-  roll: false,
-  ic: false,
-  emote: false,
-  ooc: false,
-  other: false
+  roll: true,
+  ic: true,
+  emote: true,
+  ooc: true,
+  other: true
 };
+
+/**
+ * Current shape of this module's stored settings.
+ *
+ * 0 = never migrated. 1 = chat categories default on rather than off.
+ *
+ * A changed default only helps a world that never saved a value, and the very
+ * worlds that need this one are the worlds that saved the old defaults — so the
+ * migration has to rewrite them, not just define a better fallback.
+ */
+export const SETTINGS_VERSION = 1;
 
 /** How many messages the chat panel keeps on screen. */
 export const DEFAULT_CHAT_LINES = 8;

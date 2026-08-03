@@ -119,6 +119,16 @@ buried in the console. That is what `{{selected}}` did — **Foundry registers
 selected=value localize=true}}`. The test's allowlist came from
 `client/applications/handlebars.mjs` in a real 14.365 install.
 
+### migrate.js
+
+**A corrected default only ever reaches worlds that never saved a value — and
+the worlds that need it are the ones that saved the old one.** So a default
+change that matters ships with a migration, keyed off the world-scoped
+`settingsVersion`, GM-only, and wrapped so a failure never stops the module
+loading. v1 opened up chat categories for worlds sitting on the all-off default;
+`isLegacyCategoryDefault()` only matches an *exact* all-off map, so a partial
+selection is treated as a real choice and left alone.
+
 `character-data.js` is the only file that knows system data paths (dnd5e, plus a
 generic fallback). Supporting a new system means adding an adapter there and
 nothing else.
@@ -163,6 +173,23 @@ Past that: a message authored by a non-GM always goes through; a GM-authored one
 needs its category ticked. Categories are `roll | ic | emote | ooc | other`, and
 **`roll` wins over the style** — a roll is a roll however it was posted. An
 unknown author falls to the GM's rules, so it cannot be a way past the gate.
+
+**All categories default ON, and that is deliberate — do not "tighten" it.**
+They shipped off first, reasoning that a quiet feed is the safe one. That was
+wrong: privacy is held by the whisper and blind-roll exclusions, which no
+setting can switch off, so a closed category costs content and protects nothing.
+What it produced was a panel blank on arrival, indistinguishable from a broken
+one, with the GM's own dice rolls — the single most useful thing on a stream —
+missing by default. It cost a live debugging session. `test/chat-feed.test.js`
+pins the literal default rather than `CHAT_CATEGORY_DEFAULTS`, so flipping the
+constant fails a test instead of silently regressing.
+
+**`seedChatFeed()` is why ticking the box does something.** The buffer used to
+fill only from messages arriving *after* the feed was enabled, so enabling it
+did nothing visible until somebody next spoke. Seeding re-derives the buffer
+from `game.messages` through the same gate, on enable, on category save, and on
+ready. Deriving from the log rather than filtering the buffer is also what makes
+the categories work in both directions.
 `resolveChatCategories()` coerces every stored value with `=== true`, which is
 what lets `mayShow` trust a plain `=== true` further down; that coercion is
 mutation-tested, so do not loosen it to `Boolean()`.
@@ -174,13 +201,16 @@ EMOTE 3. The v12 `user`/`type` names are read as fallbacks.
 
 ### combat-feed.js
 
-Reuses `mayAppear()` and `visibleFields()` from `overlay-feed.js` rather than
-inventing a second gate — one decision about which NPCs are stream-safe. The
-**one deliberate difference**: failing the gate hides the card entirely, but the
-tracker still lists the combatant, because a turn order with a gap in it is not
-a turn order. A gated NPC keeps its **name and initiative** (already in every
-player's own tracker) and loses its **portrait and hit points**. Hidden
-combatants are dropped outright, by their own flag *or* their token's.
+**A row is a name and an initiative, and nothing else.** It briefly also carried
+portraits and hit-point bars behind the card's NPC gate; that made the panel's
+contents depend on three separate settings and gave it four ways to be
+legitimately, invisibly empty. The card already exists for everything else.
+Do not add fields back here without a reason that outweighs that.
+
+Consequently there is **one** privacy rule and it is absolute: a combatant
+hidden from the players never appears, by its own flag *or* its token's.
+Everything that survives is already on every player's own tracker, so no NPC
+opt-in is needed — `mayAppear`/`visibleFields` are deliberately *not* imported.
 
 Iterate `combat.turns` — Foundry's own sorted order with its tie-breaks already
 applied. Re-sorting it here would only find new ways to disagree with the table.
@@ -197,8 +227,9 @@ npm ci
 npm test          # node --test --test-timeout=5000 "test/**/*.test.js"
 ```
 
-344 tests covering `obs-client.js`, `scene-sync.js`, `override-button.js`,
-`character-data.js`, `overlay-feed.js`, `chat-feed.js`, `combat-feed.js`, the
+352 tests covering `obs-client.js`, `scene-sync.js`, `override-button.js`,
+`character-data.js`, `overlay-feed.js`, `chat-feed.js`, `combat-feed.js`,
+`migrate.js`, the
 settings-window decorations, all three overlay pages and the Handlebars
 templates, run in CI on every push and PR (`.github/workflows/test.yml`,
 Node 22; also verified on 24).
@@ -281,12 +312,22 @@ The stream character overlay is built, unit-tested, and **confirmed rendering in
 a real OBS Browser Source** (2026-07-29). It lives on the pushed branch
 `stream-character-overlay`, unmerged while the author lives with it.
 
-The **chat feed and combat tracker** panels are built and unit-tested on
-`stream-chat-combat-panels` (branched off `stream-character-overlay`, so that
-one has to land first). They have **not yet been run in a real OBS** — the
-Foundry APIs they read were verified against the 14.365 install on the external
-drive, but nothing has been rendered in a Browser Source. Treat "it works" as
-unproven until it has.
+The **chat feed and combat tracker** are merged to `main`. The transport and all
+three pages are **confirmed working in a real OBS** — a payload from
+`api.selfTest()` reached the Browser Sources — but neither panel has yet been
+confirmed showing real game data on a live stream.
+
+**`game.modules.get(MODULE_ID).api` exists because debugging this from outside
+was hopeless.** `diagnose()` reports every gate and the payload each feed would
+send; `selfTest()` bypasses the gates entirely, which is what separates "the
+transport or page is broken" from "a gate is closed". Read from the *live*
+module instances — a dynamic `import()` gets a second copy with its own empty
+chat buffer and reports the wrong thing.
+
+**The recurring failure mode in this module is a panel that is correctly empty
+being indistinguishable from a broken one.** Three toggles, a category gate and
+a per-NPC gate each produced that in turn. Prefer defaults that show something,
+and when adding a gate, ask how a user will tell it apart from a bug.
 
 A **Dice So Nice chromakey view** was scoped and deferred (2026-08-03). It
 cannot live on these pages: DSN's renderer only exists inside a real Foundry

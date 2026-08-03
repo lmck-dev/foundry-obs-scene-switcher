@@ -114,22 +114,11 @@ test("a combatant whose token is hidden is dropped too", (t) => {
 /*  The privacy gate                            */
 /* -------------------------------------------- */
 
-test("a player character gets a portrait and a health bar", (t) => {
+test("a row is a name and an initiative, and carries nothing else", (t) => {
+  // The tracker deliberately does not carry portraits or hit points: that made
+  // its contents depend on three separate settings and gave it three ways to be
+  // legitimately, invisibly empty. The card exists for everything else.
   setUp(t);
-
-  const row = buildRow(
-    makeCombatant({ id: "c1", name: "Player Character", img: "tokens/hero.webp", actor: hero() }),
-    { systemId: "dnd5e" }
-  );
-
-  assert.equal(typeof row.img, "string");
-  assert.deepEqual(row.hp, { value: 19, max: 19, temp: 0, pct: 100 });
-});
-
-test("an ungated NPC keeps its name and initiative but loses everything else", (t) => {
-  // This is the one place the tracker differs from the card: the card shows
-  // nothing at all, but a turn order with a gap in it is not a turn order.
-  setUp(t); // overlayNpcs defaults to "none"
 
   const row = buildRow(
     makeCombatant({
@@ -138,96 +127,39 @@ test("an ungated NPC keeps its name and initiative but loses everything else", (
       img: "tokens/dragon.webp",
       initiative: 25,
       actor: monster()
-    }),
-    { systemId: "dnd5e" }
+    })
   );
 
+  assert.deepEqual(Object.keys(row).sort(), ["active", "defeated", "id", "initiative", "name"]);
   assert.equal(row.name, "Adult Gold Dragon");
   assert.equal(row.initiative, 25);
-  assert.equal(row.img, null, "a gated NPC must not carry a portrait");
-  assert.equal(row.hp, null, "a gated NPC must not carry hit points");
 });
 
-test("turning the portrait row off removes portraits from the tracker too", (t) => {
-  // The row settings govern both panels. Reading them for the card but not the
-  // tracker would put a face on stream that the GM had switched off.
+test("an NPC needs no opting in to take its place in the order", (t) => {
+  // Everything the tracker shows is already on every player's own tracker, so
+  // there is nothing left for the card's NPC gate to protect here.
   setUp(t, {
-    settings: { [SETTINGS.overlayFields]: { portrait: false, hp: true } }
+    combat: makeFight({
+      turns: [
+        makeCombatant({ id: "c1", name: "Player Character", actor: hero() }),
+        makeCombatant({ id: "c2", name: "Adult Gold Dragon", actor: monster(), initiative: 25 })
+      ]
+    })
   });
 
-  const row = buildRow(
-    makeCombatant({ id: "c1", name: "Player Character", img: "tokens/hero.webp", actor: hero() }),
-    { systemId: "dnd5e" }
+  assert.deepEqual(
+    buildCombatPayload().combatants.map((row) => row.name),
+    ["Player Character", "Adult Gold Dragon"]
   );
-
-  assert.equal(row.img, null);
-  assert.equal(row.hp.value, 19, "the other rows should be unaffected");
 });
 
-test("an NPC ticked for a card gets its portrait on the tracker too", (t) => {
-  setUp(t, { settings: { [SETTINGS.overlayActors]: { "dragon-1": true } } });
-
-  const row = buildRow(
-    makeCombatant({ id: "c2", name: "Adult Gold Dragon", img: "tokens/dragon.webp", actor: monster() }),
-    { systemId: "dnd5e" }
-  );
-
-  assert.equal(typeof row.img, "string");
-});
-
-test("an opted-in NPC still gets no hit points, because the NPC rows say so", (t) => {
-  // OVERLAY_NPC_FIELDS defaults hp to false — being allowed on stream is not
-  // the same as having your stat block read out.
-  setUp(t, { settings: { [SETTINGS.overlayActors]: { "dragon-1": true } } });
-
-  const row = buildRow(
-    makeCombatant({ id: "c2", name: "Adult Gold Dragon", actor: monster() }),
-    { systemId: "dnd5e" }
-  );
-
-  assert.equal(row.hp, null);
-});
-
-test("turning the NPC hit-point row on gives an opted-in NPC a bar", (t) => {
-  setUp(t, {
-    settings: {
-      [SETTINGS.overlayActors]: { "dragon-1": true },
-      [SETTINGS.overlayNpcFields]: { portrait: true, hp: true }
-    }
-  });
-
-  const row = buildRow(
-    makeCombatant({ id: "c2", name: "Adult Gold Dragon", actor: monster() }),
-    { systemId: "dnd5e" }
-  );
-
-  assert.equal(row.hp.value, 200);
-});
-
-test("the 'mapped' policy uses the scene mapping as the opt-in here too", (t) => {
-  setUp(t, {
-    settings: {
-      [SETTINGS.overlayNpcs]: NPC_POLICY.mapped,
-      [SETTINGS.sceneMappings]: { "dragon-1": "Dragon Cam" }
-    }
-  });
-
-  const row = buildRow(
-    makeCombatant({ id: "c2", name: "Adult Gold Dragon", img: "tokens/dragon.webp", actor: monster() }),
-    { systemId: "dnd5e" }
-  );
-
-  assert.equal(typeof row.img, "string");
-});
-
-test("a combatant with no actor is listed without a portrait or bar", (t) => {
+test("a combatant with no actor is still listed", (t) => {
   setUp(t);
 
   const row = buildRow(makeCombatant({ id: "c9", name: "Mystery", initiative: 7 }));
 
   assert.equal(row.name, "Mystery");
-  assert.equal(row.img, null);
-  assert.equal(row.hp, null);
+  assert.equal(row.initiative, 7);
 });
 
 /* -------------------------------------------- */

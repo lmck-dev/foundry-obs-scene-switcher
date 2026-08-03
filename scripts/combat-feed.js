@@ -1,17 +1,16 @@
 /**
  * Pushes the turn order to the stream overlay.
  *
- * Privacy here reuses the character card's gate rather than inventing a second
- * one — `mayAppear()` and `visibleFields()` from `overlay-feed.js` — so a GM who
- * has decided which NPCs are stream-safe has decided it once. What differs is
- * the consequence of failing that gate: the card shows nothing at all, while the
- * tracker still has to list the combatant, or the turn order stops being a turn
- * order. So a gated NPC keeps its name and its initiative and loses everything
- * else — its portrait and its hit points.
+ * **Name and initiative, and nothing else.** An earlier version also carried
+ * portraits and hit-point bars behind the character card's NPC gate, which made
+ * the panel's contents depend on three separate settings and gave it three ways
+ * to be legitimately, invisibly empty. What a viewer needs from a turn order is
+ * who is in the fight, in what order, and who is up now; the card already exists
+ * for everything else.
  *
- * That is a smaller concession than it looks. A combatant's name and initiative
- * are already in every player's own tracker; a hidden combatant is in nobody's,
- * and is dropped here outright.
+ * That leaves exactly one privacy rule, and it is absolute: **a combatant hidden
+ * from the players never appears.** Everything that survives it is already on
+ * every player's own tracker, so there is nothing further to gate.
  */
 import {
   SETTINGS,
@@ -21,8 +20,6 @@ import {
   warn
 } from "./constants.js";
 import { obs } from "./obs-client.js";
-import { absoluteImageUrl, mayAppear, visibleFields } from "./overlay-feed.js";
-import { buildCharacterData } from "./character-data.js";
 
 /** Payload schema version, so a future page can detect an old module. */
 export const PAYLOAD_VERSION = 1;
@@ -43,38 +40,18 @@ export function isHidden(combatant) {
 }
 
 /**
- * One row of the tracker.
- *
- * `featured` is what the privacy gate decides: player characters always are,
- * NPCs are only when the GM has opted them in. An unfeatured row is a name and
- * a number, which is what the players already see.
+ * One row of the tracker: who they are, where they are in the order, and
+ * whether they are up now.
  */
-export function buildRow(combatant, { activeId = null, systemId = "" } = {}) {
-  const actor = combatant?.actor ?? null;
-  const featured = actor ? Boolean(actor.hasPlayerOwner) || mayAppear(actor, combatant) : false;
-
+export function buildRow(combatant, { activeId = null } = {}) {
   const initiative = Number(combatant?.initiative);
-  const row = {
+  return {
     id: combatant?.id ?? null,
-    name: String(combatant?.name ?? actor?.name ?? "").trim(),
+    name: String(combatant?.name ?? combatant?.actor?.name ?? "").trim(),
     initiative: Number.isFinite(initiative) ? initiative : null,
     active: Boolean(activeId && combatant?.id === activeId),
-    defeated: Boolean(combatant?.isDefeated),
-    img: null,
-    hp: null
+    defeated: Boolean(combatant?.isDefeated)
   };
-
-  if (!featured || !actor) return row;
-
-  const fields = visibleFields(actor);
-  if (fields.portrait) row.img = absoluteImageUrl(combatant?.img ?? actor.img ?? null);
-  if (fields.hp) {
-    // Reuse the card's system adapters rather than reading hit points a second
-    // way here — a system supported for the card is supported for the tracker.
-    row.hp = buildCharacterData(actor, { systemId })?.hp ?? null;
-  }
-
-  return row;
 }
 
 /**
@@ -97,11 +74,10 @@ export function buildCombatPayload() {
   const list = Array.isArray(all) ? all : Array.from(all.contents ?? all);
 
   const activeId = combat.combatant?.id ?? null;
-  const systemId = globalThis.game?.system?.id ?? "";
 
   const combatants = list
     .filter((combatant) => combatant && !isHidden(combatant))
-    .map((combatant) => buildRow(combatant, { activeId, systemId }));
+    .map((combatant) => buildRow(combatant, { activeId }));
 
   if (!combatants.length) return CLEARED;
 

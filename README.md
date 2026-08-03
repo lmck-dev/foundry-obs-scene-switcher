@@ -136,10 +136,9 @@ a toggle that could put your whispers on a live stream is one that will
 eventually be left on by accident. Message text is also flattened to plain text
 inside Foundry before it is sent, so the page is never handed markup.
 
-Beyond that, **your players' messages always appear** — they are the players'
-own words in a log the whole table can already read. **Yours are opted in per
-category**, because as GM you are also the author of every monster's attack
-roll and every module's status card:
+Beyond that the feed shows **everything else in the log**. Your players'
+messages always appear. Your own are shown by category, and **all categories
+are on by default** — narrow them if the feed is noisy, not to make it work:
 
 | Category | What it covers |
 | --- | --- |
@@ -149,10 +148,12 @@ roll and every module's status card:
 | Your out-of-character chat | Table talk posted as yourself |
 | Module and system cards | Item cards, module notices, update banners — usually the noisiest |
 
-All default **off**, so the feed starts quiet and you open it up deliberately.
-**Messages on screen** sets how many are kept before older ones scroll off.
+**Messages on screen** sets how many of the most recent are kept.
 
-Deleting a message in Foundry retracts it from the stream too.
+Switching the feed on fills it from the log you already have, rather than
+waiting for the next message — and changing the categories re-derives it, so
+widening them reveals messages already posted and narrowing them retracts what
+no longer qualifies. Deleting a message in Foundry retracts it too.
 
 ## Combat tracker
 
@@ -163,14 +164,14 @@ It hides itself when combat ends.
 2. In OBS: **Sources → + → Browser**, **Local file**, `overlay/combat.html`.
    Around **320 × 420** suits a side column.
 
-It reuses the character card's privacy rules rather than adding a second set:
+Each row is a **name and an initiative**, nothing more — the character card
+already exists for portraits and hit points, and keeping the tracker to two
+fields means it has only one way to be empty rather than four.
 
-- **Combatants hidden from players never appear.**
-- **Player characters** get portrait, initiative and a health bar.
-- **NPCs** get their name and initiative — which every player's own tracker
-  already shows — and nothing else, unless you have opted them in via the
-  **Card** column or the **Which NPCs may appear** rule. Even then their hit
-  points stay off until the NPC **Hit points** row is ticked.
+That leaves exactly one privacy rule, and it is absolute: **combatants hidden
+from the players never appear.** Everything that survives it is already on every
+player's own tracker, so there is nothing further to gate — no opt-in needed for
+NPCs to take their place in the order.
 
 A combatant who has not rolled yet shows no initiative rather than a zero, and
 defeated combatants are struck through rather than removed.
@@ -213,7 +214,7 @@ lang/en.json
 
 ## Status / testing
 
-- 344 unit tests run in CI on every push (`npm test`, Node 22). They cover the
+- 352 unit tests run in CI on every push (`npm test`, Node 22). They cover the
   obs-websocket handshake (cross-checked against the spec's example vector),
   every `resolveScene()` branch, the tracker button's DOM injection, the actor
   adapters, all three feeds' privacy gating, the settings-window decorations,
@@ -221,8 +222,19 @@ lang/en.json
 - Scene switching has been run in a live game and worked as intended.
 - The character overlay has been rendered in a real OBS Browser Source and
   behaved as intended.
-- **The chat feed and combat tracker are unit-tested but have not yet been run
-  in a real OBS.**
+- The transport and all three pages are **confirmed working in a real OBS**;
+  the panels were reached by a test payload sent from `selfTest()` below.
+- **The chat feed and combat tracker have not yet been confirmed showing real
+  game data on a live stream.**
+
+### Diagnostics
+
+`game.modules.get("foundry-obs-scene-switcher").api` exposes two entry points
+for when a panel is blank:
+
+- `diagnose()` — prints every gate and the exact payload each feed would send.
+- `selfTest()` — sends a payload to all three pages bypassing every gate. If
+  the panels light up, the transport and pages are fine and a gate is closed.
 
 ## Out of scope
 

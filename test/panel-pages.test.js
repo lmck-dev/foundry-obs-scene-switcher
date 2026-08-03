@@ -193,9 +193,7 @@ const ROW = {
   name: "Player Character",
   initiative: 18,
   active: false,
-  defeated: false,
-  img: null,
-  hp: null
+  defeated: false
 };
 
 test("the combat page mounts itself and starts empty", (t) => {
@@ -256,50 +254,6 @@ test("a combat that has not started shows no round header", (t) => {
   assert.equal(dom.root.querySelector(".combat-round").hidden, true);
 });
 
-test("a row with hit points gets a bar sized to them", (t) => {
-  const dom = combatPage(t);
-
-  dom.instance.apply(combatPayload([{ ...ROW, hp: { value: 5, max: 20, temp: 0, pct: 25 } }]));
-
-  assert.equal(dom.root.querySelector(".combat-hp-fill").style.width, "25%");
-  assert.equal(dom.root.querySelector(".combat-hp-text").textContent, "5 / 20");
-});
-
-test("a row with no hit points gets no bar at all", (t) => {
-  // A gated NPC arrives with hp: null. A placeholder bar would imply a number
-  // the audience is not meant to have.
-  const dom = combatPage(t);
-
-  dom.instance.apply(combatPayload([{ ...ROW, hp: null }]));
-
-  assert.equal(count(dom.root, ".combat-hp"), 0);
-});
-
-test("a low health bar is marked so it can be coloured", (t) => {
-  const dom = combatPage(t);
-
-  dom.instance.apply(combatPayload([{ ...ROW, hp: { value: 2, max: 20, temp: 0, pct: 10 } }]));
-
-  assert.equal(count(dom.root, ".combat-hp.low"), 1);
-});
-
-test("an unknown maximum shows the number without implying a full bar", (t) => {
-  const dom = combatPage(t);
-
-  dom.instance.apply(combatPayload([{ ...ROW, hp: { value: 12, max: null, temp: 0, pct: null } }]));
-
-  assert.equal(count(dom.root, ".combat-hp.unknown-max"), 1);
-  assert.equal(dom.root.querySelector(".combat-hp-text").textContent, "12");
-});
-
-test("temporary hit points are shown alongside the total", (t) => {
-  const dom = combatPage(t);
-
-  dom.instance.apply(combatPayload([{ ...ROW, hp: { value: 19, max: 19, temp: 5, pct: 100 } }]));
-
-  assert.equal(dom.root.querySelector(".combat-hp-text").textContent, "19 / 19 (+5)");
-});
-
 test("an initiative of zero is rendered, not treated as absent", (t) => {
   const dom = combatPage(t);
 
@@ -316,20 +270,17 @@ test("a combatant who has not rolled gets no initiative box", (t) => {
   assert.equal(count(dom.root, ".combat-init"), 0);
 });
 
-test("a gated NPC's row carries no portrait", (t) => {
+test("the tracker renders no images at all, whatever a row carries", (t) => {
+  // Rows are a name and a number by design. A payload from an older module
+  // still carrying an image must not resurrect a picture on the stream.
   const dom = combatPage(t);
 
-  dom.instance.apply(combatPayload([{ ...ROW, img: null }]));
+  dom.instance.apply(
+    combatPayload([{ ...ROW, img: "javascript:alert(1)", hp: { value: 1, max: 2, pct: 50 } }])
+  );
 
-  assert.equal(count(dom.root, "img.combat-portrait"), 0);
-});
-
-test("a javascript: portrait URL is refused", (t) => {
-  const dom = combatPage(t);
-
-  dom.instance.apply(combatPayload([{ ...ROW, img: "javascript:alert(1)" }]));
-
-  assert.equal(count(dom.root, "img.combat-portrait"), 0);
+  assert.equal(count(dom.root, "img"), 0);
+  assert.equal(count(dom.root, ".combat-hp"), 0);
 });
 
 test("combat ending empties the tracker rather than leaving it up", (t) => {

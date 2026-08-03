@@ -11,6 +11,7 @@ import {
   OVERLAY_FIELDS,
   OVERLAY_NPC_FIELDS,
   CHAT_CATEGORY_DEFAULTS,
+  SETTINGS_VERSION,
   DEFAULT_CHAT_LINES,
   DEFAULT_OVERLAY_EVENT,
   DEFAULT_CHAT_EVENT,
@@ -157,6 +158,7 @@ export function installFoundry({
       // The two new panels default ON here, unlike in Foundry: a test that
       // wants them off says so, and every other test would otherwise assert
       // against a feed that was never switched on.
+      [SETTINGS.settingsVersion]: SETTINGS_VERSION,
       [SETTINGS.chatEnabled]: true,
       [SETTINGS.chatCategories]: { ...CHAT_CATEGORY_DEFAULTS },
       [SETTINGS.chatLines]: DEFAULT_CHAT_LINES,

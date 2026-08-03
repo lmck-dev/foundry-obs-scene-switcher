@@ -47,13 +47,26 @@ import {
 const PLAYER = makeUser({ name: "Ana", isGM: false });
 const GM = makeUser({ name: "Gamemaster", isGM: true });
 
-/** Every category on, so a test about something else is not gated by accident. */
+/** Every category on — which is also the default, since v1 of the settings. */
 const ALL_CATEGORIES = {
   roll: true,
   ic: true,
   emote: true,
   ooc: true,
   other: true
+};
+
+/**
+ * Every category off: a GM who has deliberately narrowed the feed to their
+ * players' messages only. Stated explicitly because it is no longer the
+ * default — it was, and that was the bug.
+ */
+const NO_CATEGORIES = {
+  roll: false,
+  ic: false,
+  emote: false,
+  ooc: false,
+  other: false
 };
 
 function setUp(t, options = {}) {
@@ -197,13 +210,13 @@ test("an empty whisper array is a public message, not a private one", (t) => {
 /* -------------------------------------------- */
 
 test("a player's message is shown even with every category unticked", (t) => {
-  setUp(t); // categories all default to false
+  setUp(t, { settings: { [SETTINGS.chatCategories]: NO_CATEGORIES } });
 
   assert.equal(mayShow(makeMessage({ author: PLAYER, content: "hello" })), true);
 });
 
 test("a player's message of any category is shown", (t) => {
-  setUp(t);
+  setUp(t, { settings: { [SETTINGS.chatCategories]: NO_CATEGORIES } });
 
   for (const style of Object.values(STYLES)) {
     assert.equal(
@@ -219,7 +232,7 @@ test("a player's message of any category is shown", (t) => {
 });
 
 test("the Gamemaster's message is hidden until its category is ticked", (t) => {
-  const { foundry } = setUp(t);
+  const { foundry } = setUp(t, { settings: { [SETTINGS.chatCategories]: NO_CATEGORIES } });
   const message = makeMessage({ author: GM, style: STYLES.IC, content: "The door opens." });
 
   assert.equal(mayShow(message), false);
@@ -241,13 +254,35 @@ test("ticking one category does not let another through", (t) => {
 
 test("a message with no identifiable author is gated, not waved through", (t) => {
   // An unknown author must not become a way past the gate — it falls to the
-  // Gamemaster's rules, which default to nothing.
-  setUp(t);
+  // Gamemaster's rules, whatever those currently are.
+  setUp(t, { settings: { [SETTINGS.chatCategories]: NO_CATEGORIES } });
 
   const message = makeMessage({ content: "from nowhere" });
   delete message.author;
 
   assert.equal(mayShow(message), false);
+});
+
+test("a fresh world shows the Gamemaster's dice rolls without being configured", (t) => {
+  // Pinned to the literal default rather than to CHAT_CATEGORY_DEFAULTS, which
+  // would just follow whatever the default happened to become. Shipping this
+  // off is what made the panel arrive blank and unexplainable, and cost a live
+  // debugging session; privacy is held by the whisper and blind-roll rules,
+  // which no setting can switch off, so a closed category protects nothing.
+  setUp(t, { settings: { [SETTINGS.chatCategories]: undefined } });
+
+  assert.deepEqual(resolveChatCategories(undefined), {
+    roll: true,
+    ic: true,
+    emote: true,
+    ooc: true,
+    other: true
+  });
+  assert.equal(
+    mayShow(makeMessage({ author: GM, rolls: [{ formula: "1d20", total: 18 }] })),
+    true,
+    "a GM's roll must reach the stream out of the box"
+  );
 });
 
 test("a stored category value that is not `true` does not open it", (t) => {
@@ -281,7 +316,9 @@ test("every category the module can classify has a default", (t) => {
 test("a stored category the module does not know is ignored", (t) => {
   // A setting written by a future version must not turn into a category that
   // silently opens something this version cannot describe.
-  setUp(t, { settings: { [SETTINGS.chatCategories]: { somethingNew: true } } });
+  setUp(t, {
+    settings: { [SETTINGS.chatCategories]: { ...NO_CATEGORIES, somethingNew: true } }
+  });
 
   assert.equal(mayShow(makeMessage({ author: GM, style: STYLES.OOC })), false);
 });
@@ -380,7 +417,7 @@ test("a speaker with no actor leaves the portrait empty rather than guessing", (
 /* -------------------------------------------- */
 
 test("an allowed message joins the feed and a gated one does not", (t) => {
-  setUp(t);
+  setUp(t, { settings: { [SETTINGS.chatCategories]: NO_CATEGORIES } });
 
   assert.equal(recordMessage(makeMessage({ id: "a", author: PLAYER })), true);
   assert.equal(recordMessage(makeMessage({ id: "b", author: GM })), false);
@@ -481,6 +518,7 @@ test("seeding takes the newest messages, not the first in a long log", (t) => {
 
 test("seeding applies the same gate as a live message", (t) => {
   setUp(t, {
+    settings: { [SETTINGS.chatCategories]: NO_CATEGORIES },
     messages: [
       makeMessage({ id: "a", author: PLAYER, content: "public" }),
       makeMessage({ id: "b", author: GM, whisper: ["someone"], content: "private" }),
@@ -495,6 +533,7 @@ test("seeding applies the same gate as a live message", (t) => {
 
 test("widening the categories reveals messages already in the log", (t) => {
   const { foundry } = setUp(t, {
+    settings: { [SETTINGS.chatCategories]: NO_CATEGORIES },
     messages: [makeMessage({ id: "a", author: GM, rolls: [{ formula: "1d20", total: 7 }] })]
   });
   seedChatFeed();
@@ -514,7 +553,7 @@ test("narrowing the categories retracts what no longer qualifies", (t) => {
   seedChatFeed();
   assert.equal(bufferedLines().length, 1);
 
-  foundry.store.set(SETTINGS.chatCategories, {});
+  foundry.store.set(SETTINGS.chatCategories, NO_CATEGORIES);
   seedChatFeed();
 
   assert.equal(bufferedLines().length, 0);

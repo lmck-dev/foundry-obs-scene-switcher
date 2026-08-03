@@ -43,6 +43,7 @@ import {
   buildCombatPayload,
   combatEventName
 } from "./combat-feed.js";
+import { runMigrations } from "./migrate.js";
 import { MappingConfig } from "../applications/mapping-config.js";
 import { OverlayConfig } from "../applications/overlay-config.js";
 
@@ -171,6 +172,15 @@ function registerSettings() {
     config: false,
     type: String,
     default: DEFAULT_OVERLAY_EVENT
+  });
+
+  // Which shape this world's stored settings are in, so a corrected default can
+  // be applied to worlds that already saved the old one. See migrate.js.
+  game.settings.register(MODULE_ID, SETTINGS.settingsVersion, {
+    scope: "world",
+    config: false,
+    type: Number,
+    default: 0
   });
 
   // Chat feed. Client-scoped toggle like the card's, for the same reason: a
@@ -402,7 +412,7 @@ Hooks.once("init", () => {
   if (module) module.api = buildApi();
 });
 
-Hooks.once("ready", () => {
+Hooks.once("ready", async () => {
   if (!game.user?.isGM) {
     log("Non-GM client — OBS sync disabled");
     return;
@@ -412,6 +422,10 @@ Hooks.once("ready", () => {
     updateAllButtons();
     refreshSettingsHighlight();
   };
+  // Before anything reads a setting in anger: a world still holding the old
+  // all-off chat categories has a panel that cannot show the GM's own rolls.
+  await runMigrations();
+
   connect();
   // Browser Sources reload whenever their scene becomes visible, and an event
   // sent while one was down is gone for good — so repeat the current state.
