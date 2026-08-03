@@ -14,8 +14,19 @@
   "foundry-obs-scene-switcher.settings.overlayEnabled.hint": "Show the current character's portrait and stats on stream, via an OBS Browser Source. Configure it under 'Character Overlay' below.",
   "foundry-obs-scene-switcher.settings.overlayEnabled.url": "Overlay File",
   "foundry-obs-scene-switcher.settings.overlayEnabled.urlHint": "In OBS: Sources → + → Browser, tick 'Local file', and browse to this file inside your Foundry user data folder (its location is shown in Setup → Configuration). Size the source around 480 × 220. It has to be the local file, not a web address: Foundry deliberately serves module HTML as plain text, so a Browser Source pointed at the server shows the markup instead of the card.",
-  "foundry-obs-scene-switcher.settings.overlayEnabled.copy": "Copy",
-  "foundry-obs-scene-switcher.settings.overlayEnabled.copied": "Browser Source URL copied to the clipboard.",
+
+  "foundry-obs-scene-switcher.settings.chatEnabled.name": "Stream Chat Feed",
+  "foundry-obs-scene-switcher.settings.chatEnabled.hint": "Show the tail of the chat log on stream, via an OBS Browser Source. Your players' messages always appear; choose which of your own do, under 'Character Overlay' below. Whispers and blind rolls are never sent.",
+  "foundry-obs-scene-switcher.settings.chatEnabled.url": "Chat Feed File",
+  "foundry-obs-scene-switcher.settings.chatEnabled.urlHint": "In OBS: Sources → + → Browser, tick 'Local file', and browse to this file inside your Foundry user data folder (its location is shown in Setup → Configuration). Around 380 × 500 suits a side column. It has to be the local file, not a web address.",
+
+  "foundry-obs-scene-switcher.settings.combatEnabled.name": "Stream Combat Tracker",
+  "foundry-obs-scene-switcher.settings.combatEnabled.hint": "Show the turn order on stream, via an OBS Browser Source, with whoever is up highlighted. It uses the same privacy rules as the character card, and hides itself when combat ends.",
+  "foundry-obs-scene-switcher.settings.combatEnabled.url": "Combat Tracker File",
+  "foundry-obs-scene-switcher.settings.combatEnabled.urlHint": "In OBS: Sources → + → Browser, tick 'Local file', and browse to this file inside your Foundry user data folder (its location is shown in Setup → Configuration). Around 320 × 420 suits a side column. It has to be the local file, not a web address.",
+
+  "foundry-obs-scene-switcher.settings.browserSource.copy": "Copy",
+  "foundry-obs-scene-switcher.settings.browserSource.copied": "Browser Source file path copied to the clipboard.",
 
   "foundry-obs-scene-switcher.overlay.menuName": "Character Overlay",
   "foundry-obs-scene-switcher.overlay.menuLabel": "Configure Character Overlay",
@@ -48,6 +59,26 @@
   "foundry-obs-scene-switcher.overlay.eventNameHint": "The browser event this module sends to OBS. Only change this if you are writing your own overlay page — then add '?event=yourName' to the Browser Source URL.",
   "foundry-obs-scene-switcher.overlay.save": "Save Overlay Settings",
   "foundry-obs-scene-switcher.overlay.saved": "OBS character overlay settings saved.",
+
+  "foundry-obs-scene-switcher.chat.url": "Chat Feed File",
+  "foundry-obs-scene-switcher.chat.urlHint": "A second Browser Source, again as a local file. Around 380 × 500 suits a column down one side of the scene.",
+  "foundry-obs-scene-switcher.chat.legend": "Chat Feed",
+  "foundry-obs-scene-switcher.chat.hint": "Messages your players write always reach the stream — they are the players' own words, in a log the whole table can already read. These choose which of your own messages do, because as Gamemaster you are also the author of every monster's attack roll and every module's status card. Whispers and blind rolls are never sent, whatever is ticked here.",
+  "foundry-obs-scene-switcher.chat.category.roll": "Your dice rolls",
+  "foundry-obs-scene-switcher.chat.category.rollHint": "Initiative, attacks and saves you roll — including every NPC's, since you are the one rolling them.",
+  "foundry-obs-scene-switcher.chat.category.ic": "Your in-character speech",
+  "foundry-obs-scene-switcher.chat.category.icHint": "Messages you post while speaking as an NPC.",
+  "foundry-obs-scene-switcher.chat.category.emote": "Your emotes",
+  "foundry-obs-scene-switcher.chat.category.emoteHint": "Scene description and stage direction posted with /emote.",
+  "foundry-obs-scene-switcher.chat.category.ooc": "Your out-of-character chat",
+  "foundry-obs-scene-switcher.chat.category.oocHint": "Table talk you post as yourself rather than as a character.",
+  "foundry-obs-scene-switcher.chat.category.other": "Module and system cards",
+  "foundry-obs-scene-switcher.chat.category.otherHint": "Everything else that lands in the log under your name — item cards, module notices, update banners. Usually the noisiest option.",
+  "foundry-obs-scene-switcher.chat.lines": "Messages on screen",
+  "foundry-obs-scene-switcher.chat.linesHint": "How many of the most recent messages the panel keeps. Older ones scroll off.",
+
+  "foundry-obs-scene-switcher.combat.url": "Combat Tracker File",
+  "foundry-obs-scene-switcher.combat.urlHint": "A third Browser Source, again as a local file. Around 320 × 420 suits a column down one side of the scene. The panel hides itself when there is no combat.",
 
   "foundry-obs-scene-switcher.config.menuName": "Scene Mappings",
   "foundry-obs-scene-switcher.config.menuLabel": "Configure Scene Mappings",

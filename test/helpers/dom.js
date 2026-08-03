@@ -8,14 +8,17 @@
 import { readFileSync } from "node:fs";
 import { Window } from "happy-dom";
 
-const OVERLAY_HTML = readFileSync(
-  new URL("../../overlay/overlay.html", import.meta.url),
-  "utf8"
-);
-const OVERLAY_JS = readFileSync(
-  new URL("../../overlay/overlay.js", import.meta.url),
-  "utf8"
-);
+const read = (name) => readFileSync(new URL(`../../overlay/${name}`, import.meta.url), "utf8");
+
+/** The shared classic script every page pulls in before its own. */
+const COMMON_JS = read("common.js");
+
+/** Each panel: the page it ships as, and the script that renders it. */
+const PAGES = {
+  character: { html: read("overlay.html"), js: read("overlay.js"), global: "OBSOverlay" },
+  chat: { html: read("chat.html"), js: read("chat.js"), global: "OBSChatOverlay" },
+  combat: { html: read("combat.html"), js: read("combat.js"), global: "OBSCombatOverlay" }
+};
 
 /**
  * Install a fresh document as the globals the source reads.
@@ -30,13 +33,17 @@ export function installDom() {
     window: globalThis.window,
     document: globalThis.document,
     HTMLElement: globalThis.HTMLElement,
-    Event: globalThis.Event
+    Event: globalThis.Event,
+    DOMParser: globalThis.DOMParser
   };
 
   globalThis.window = window;
   globalThis.document = window.document;
   globalThis.HTMLElement = window.HTMLElement;
   globalThis.Event = window.Event;
+  // chat-feed.js flattens message HTML through DOMParser, so a test that never
+  // installs one would silently exercise the regex fallback instead.
+  globalThis.DOMParser = window.DOMParser;
 
   document.body.innerHTML = "";
 
@@ -77,38 +84,44 @@ export function click(element) {
 }
 
 /**
- * Load the real overlay page into a happy-dom window.
+ * Load one of the real overlay pages into a happy-dom window.
  *
- * The markup comes out of the shipped overlay.html rather than being restated
- * here, so a class the script looks for but the page stopped providing fails a
- * test instead of silently rendering an empty card on stream.
+ * The markup comes out of the shipped .html rather than being restated here, so
+ * a class the script looks for but the page stopped providing fails a test
+ * instead of silently rendering an empty panel on stream.
  *
- * overlay.js is a classic script — it has no exports to import — so it is
+ * These are classic scripts — they have no exports to import — so they are
  * evaluated with `window` and `document` handed in as the page would supply
- * them.
+ * them, common.js first, exactly as the `<script>` tags order them.
  */
-export function loadOverlayPage() {
+export function loadOverlayPage(panel = "character") {
+  const page = PAGES[panel];
+  if (!page) throw new Error(`no such overlay page: ${panel}`);
+
   const dom = installDom();
 
-  const body = OVERLAY_HTML.match(/<body[^>]*>([\s\S]*?)<\/body>/i)[1].replace(
+  const body = page.html.match(/<body[^>]*>([\s\S]*?)<\/body>/i)[1].replace(
     /<script[\s\S]*?<\/script>/gi,
     ""
   );
   dom.document.body.innerHTML = body;
 
-  new Function("window", "document", OVERLAY_JS)(dom.window, dom.document);
+  new Function("window", "document", COMMON_JS)(dom.window, dom.document);
+  new Function("window", "document", page.js)(dom.window, dom.document);
+
+  const api = dom.window[page.global];
 
   // The script self-mounts on DOMContentLoaded if the document is still
   // parsing; happy-dom's readyState varies, so nudge it when it has not run.
-  if (!dom.window.OBSOverlay.instance) {
+  if (!api.instance) {
     dom.document.dispatchEvent(new dom.window.Event("DOMContentLoaded"));
   }
 
   return {
     ...dom,
-    overlay: dom.window.OBSOverlay,
-    instance: dom.window.OBSOverlay.instance,
-    root: dom.document.getElementById("obs-overlay-root")
+    overlay: api,
+    instance: api.instance,
+    root: dom.document.getElementById(api.ROOT_ID ?? "obs-overlay-root")
   };
 }
 

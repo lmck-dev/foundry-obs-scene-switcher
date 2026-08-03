@@ -10,7 +10,11 @@ import {
   SETTINGS,
   OVERLAY_FIELDS,
   OVERLAY_NPC_FIELDS,
+  CHAT_CATEGORY_DEFAULTS,
+  DEFAULT_CHAT_LINES,
   DEFAULT_OVERLAY_EVENT,
+  DEFAULT_CHAT_EVENT,
+  DEFAULT_COMBAT_EVENT,
   NPC_POLICY
 } from "../../scripts/constants.js";
 
@@ -77,9 +81,51 @@ export function makeToken({ actor = null, hidden = false } = {}) {
 }
 
 /** A Combatant: carries its own hidden flag as well as its token's. */
-export function makeCombatant({ actor = null, hidden = false, tokenHidden = false } = {}) {
-  return { actor, hidden, token: { hidden: tokenHidden } };
+export function makeCombatant({
+  actor = null,
+  hidden = false,
+  tokenHidden = false,
+  id,
+  name,
+  img,
+  initiative,
+  isDefeated = false
+} = {}) {
+  const combatant = { actor, hidden, token: { hidden: tokenHidden }, isDefeated };
+  if (id !== undefined) combatant.id = id;
+  if (name !== undefined) combatant.name = name;
+  if (img !== undefined) combatant.img = img;
+  if (initiative !== undefined) combatant.initiative = initiative;
+  return combatant;
 }
+
+/** A User stand-in: what the chat feed reads to decide "player or Gamemaster". */
+export function makeUser({ name = "Someone", isGM = false, avatar = null } = {}) {
+  return { name, isGM, avatar };
+}
+
+/**
+ * A ChatMessage stand-in.
+ *
+ * `style` is the v13+ field; the numbers match `CONST.CHAT_MESSAGE_STYLES`
+ * installed below, so a test can say `style: STYLES.IC` and mean it.
+ */
+export function makeMessage({
+  id = "msg-1",
+  author = makeUser(),
+  content = "",
+  flavor = "",
+  style = 0,
+  rolls = [],
+  whisper = [],
+  blind = false,
+  speaker = {}
+} = {}) {
+  return { id, author, content, flavor, style, rolls, whisper, blind, speaker };
+}
+
+/** Foundry's chat message styles, as v13+ names them. */
+export const STYLES = { OTHER: 0, OOC: 1, IC: 2, EMOTE: 3 };
 
 /**
  * Install globals for one test.
@@ -92,7 +138,8 @@ export function installFoundry({
   combat = null,
   controlled = [],
   isGM = true,
-  systemId = ""
+  systemId = "",
+  actors = []
 } = {}) {
   const store = new Map(
     Object.entries({
@@ -106,6 +153,15 @@ export function installFoundry({
       [SETTINGS.overlayNpcs]: NPC_POLICY.none,
       [SETTINGS.overlayActors]: {},
       [SETTINGS.overlayEventName]: DEFAULT_OVERLAY_EVENT,
+      // The two new panels default ON here, unlike in Foundry: a test that
+      // wants them off says so, and every other test would otherwise assert
+      // against a feed that was never switched on.
+      [SETTINGS.chatEnabled]: true,
+      [SETTINGS.chatCategories]: { ...CHAT_CATEGORY_DEFAULTS },
+      [SETTINGS.chatLines]: DEFAULT_CHAT_LINES,
+      [SETTINGS.chatEventName]: DEFAULT_CHAT_EVENT,
+      [SETTINGS.combatEnabled]: true,
+      [SETTINGS.combatEventName]: DEFAULT_COMBAT_EVENT,
       ...settings
     })
   );
@@ -113,8 +169,12 @@ export function installFoundry({
   const previous = {
     game: globalThis.game,
     canvas: globalThis.canvas,
-    ui: globalThis.ui
+    ui: globalThis.ui,
+    CONST: globalThis.CONST
   };
+
+  // categorise() reads the style constants off CONST, as the real client does.
+  globalThis.CONST = { CHAT_MESSAGE_STYLES: { ...STYLES } };
 
   // Notifications are user-facing, so tests assert on them rather than letting
   // an undefined `ui` throw halfway through the code under test.
@@ -132,6 +192,8 @@ export function installFoundry({
     combat,
     i18n,
     system: { id: systemId },
+    // The chat feed looks up a speaker's actor for its portrait.
+    actors: { get: (id) => actors.find((actor) => actor.id === id) ?? null },
     settings: {
       get: (_moduleId, key) => store.get(key),
       set: (_moduleId, key, value) => {
@@ -150,6 +212,7 @@ export function installFoundry({
       globalThis.game = previous.game;
       globalThis.canvas = previous.canvas;
       globalThis.ui = previous.ui;
+      globalThis.CONST = previous.CONST;
     }
   };
 }

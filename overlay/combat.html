@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>OBS Scene Switcher — Combat Tracker</title>
+<!--
+  Point an OBS Browser Source at this file. It shows the current turn order,
+  with whoever is up highlighted, and hides itself when combat ends.
+
+  Optional query parameters (typed file:/// URLs only — OBS's "Local file" tick
+  gives the page no query string):
+    ?accent=%23c0392b   accent colour (URL-encode the #)
+    &scale=1.1          overall size multiplier
+    &anchor=top         pin to the top of the source instead of the bottom
+    &event=myEventName  match a custom event name set in the module settings
+
+  Every element has a stable class name, so OBS's own "Custom CSS" box can
+  restyle any part of this without editing the file.
+-->
+<style>
+  :root {
+    --accent: #d4a24a;
+    --scale: 1;
+    --card-bg: rgba(12, 14, 18, 0.82);
+    --text: #f4f2ee;
+    --muted: rgba(244, 242, 238, 0.66);
+  }
+
+  html, body {
+    margin: 0;
+    padding: 0;
+    height: 100%;
+    /* OBS composites this over your scene — never paint a background. */
+    background: transparent;
+    overflow: hidden;
+    font-family: -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    color: var(--text);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  body {
+    display: flex;
+    padding: 12px;
+    box-sizing: border-box;
+  }
+
+  .combat-root {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 0.4em;
+    font-size: calc(15px * var(--scale));
+    transition: opacity 320ms ease;
+  }
+
+  .combat-root[data-anchor="bottom"] { justify-content: flex-end; }
+  .combat-root[data-anchor="top"]    { justify-content: flex-start; }
+
+  .combat-root[data-state="empty"] { opacity: 0; }
+  .combat-root[data-state="shown"] { opacity: 1; }
+
+  .combat-round {
+    align-self: flex-start;
+    padding: 0.2em 0.7em;
+    border-radius: 999px;
+    background: var(--accent);
+    color: #17130a;
+    font-size: 0.78em;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+
+  .combat-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.3em;
+  }
+
+  .combat-row {
+    display: flex;
+    gap: 0.6em;
+    align-items: center;
+    box-sizing: border-box;
+    padding: 0.35em 0.5em;
+    border: 1px solid rgba(255, 255, 255, 0.09);
+    border-left: 3px solid transparent;
+    border-radius: 0.45em;
+    background: var(--card-bg);
+    backdrop-filter: blur(7px);
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.45);
+    transition: border-color 250ms ease, background 250ms ease;
+  }
+
+  /* Whose turn it is has to be readable at a glance, at stream bitrates. */
+  .combat-row.active {
+    border-left-color: var(--accent);
+    background: rgba(38, 32, 18, 0.9);
+    box-shadow: 0 6px 22px rgba(0, 0, 0, 0.55), 0 0 0 1px var(--accent) inset;
+  }
+
+  .combat-row.defeated { opacity: 0.45; }
+  .combat-row.defeated .combat-name { text-decoration: line-through; }
+
+  .combat-portrait {
+    width: 2.1em;
+    height: 2.1em;
+    flex: 0 0 auto;
+    object-fit: cover;
+    object-position: center 25%;
+    border-radius: 0.35em;
+    background: rgba(255, 255, 255, 0.05);
+    box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.14);
+  }
+
+  .combat-body {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15em;
+    min-width: 0;
+    flex: 1 1 auto;
+  }
+
+  .combat-name {
+    font-size: 0.95em;
+    font-weight: 600;
+    line-height: 1.15;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .combat-hp {
+    display: flex;
+    align-items: center;
+    gap: 0.45em;
+  }
+
+  .combat-hp-bar {
+    position: relative;
+    width: 6em;
+    height: 0.35em;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.13);
+    overflow: hidden;
+  }
+
+  .combat-hp-fill {
+    height: 100%;
+    border-radius: inherit;
+    background: linear-gradient(90deg, #3f9d55, #63c777);
+    transition: width 450ms cubic-bezier(0.4, 0, 0.2, 1), background 450ms ease;
+  }
+
+  .combat-hp.mid .combat-hp-fill { background: linear-gradient(90deg, #b8862a, #e0b84a); }
+  .combat-hp.low .combat-hp-fill { background: linear-gradient(90deg, #a52222, #e04b4b); }
+
+  /* No maximum known — the track would imply a full bar, so hide it. */
+  .combat-hp.unknown-max .combat-hp-bar { display: none; }
+
+  .combat-hp-text {
+    font-size: 0.72em;
+    color: var(--muted);
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
+
+  .combat-init {
+    flex: 0 0 auto;
+    min-width: 1.9em;
+    padding: 0.15em 0.35em;
+    border-radius: 0.3em;
+    background: rgba(255, 255, 255, 0.07);
+    font-size: 0.85em;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    text-align: center;
+  }
+
+  .combat-row.active .combat-init {
+    background: var(--accent);
+    color: #17130a;
+  }
+
+  [hidden] { display: none !important; }
+
+  @media (prefers-reduced-motion: reduce) {
+    .combat-root, .combat-row, .combat-hp-fill { transition: none; }
+  }
+</style>
+</head>
+<body>
+  <div id="obs-combat-root" class="combat-root" data-state="empty" data-anchor="bottom">
+    <div class="combat-round" hidden></div>
+    <div class="combat-list"></div>
+  </div>
+  <script src="common.js"></script>
+  <script src="combat.js"></script>
+</body>
+</html>

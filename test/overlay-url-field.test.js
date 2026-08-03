@@ -10,32 +10,45 @@ import assert from "node:assert/strict";
 import { MODULE_ID, SETTINGS } from "../scripts/constants.js";
 import {
   refreshOverlayUrlField,
-  overlayFilePath
+  overlayFilePath,
+  panelFilePath,
+  PANELS
 } from "../scripts/overlay-url-field.js";
 import { installDom, count, click } from "./helpers/dom.js";
 import { installFoundry } from "./helpers/foundry-mock.js";
 
 const TOGGLE = `input[name="${MODULE_ID}.${SETTINGS.overlayEnabled}"]`;
-const GROUP = ".obs-overlay-url-group";
+const GROUP = '.obs-overlay-url-group[data-panel="overlay"]';
+const ANY_GROUP = ".obs-overlay-url-group";
 
-/** A stand-in for the module's block in the Settings window. */
-function settingsWindow({ checked = true, includeToggle = true } = {}) {
+/** One panel's toggle, as Foundry renders a Boolean setting. */
+function toggleMarkup(setting, checked) {
+  return `<div class="form-group toggle-group">
+            <label>${setting}</label>
+            <input type="checkbox" name="${MODULE_ID}.${setting}" ${checked ? "checked" : ""} />
+          </div>`;
+}
+
+/**
+ * A stand-in for the module's block in the Settings window.
+ *
+ * `panels` decides which toggles are on the page: all three by default, since
+ * that is what a GM actually sees, and they all share one parent — which is the
+ * arrangement the per-panel scoping has to survive.
+ */
+function settingsWindow({
+  checked = true,
+  includeToggle = true,
+  panels = PANELS.map((panel) => panel.setting)
+} = {}) {
   const root = document.createElement("form");
+  const shown = includeToggle ? panels : panels.filter((s) => s !== SETTINGS.overlayEnabled);
   root.innerHTML = `
     <div class="form-group">
       <label>Some other setting</label>
       <input type="text" name="${MODULE_ID}.obsHost" />
     </div>
-    ${
-      includeToggle
-        ? `<div class="form-group toggle-group">
-             <label>Stream Character Overlay</label>
-             <input type="checkbox" name="${MODULE_ID}.${SETTINGS.overlayEnabled}" ${
-             checked ? "checked" : ""
-           } />
-           </div>`
-        : ""
-    }
+    ${shown.map((setting) => toggleMarkup(setting, checked)).join("")}
   `;
   document.body.append(root);
   return root;
@@ -80,9 +93,75 @@ test("it is a file path, not a web address", (t) => {
   assert.equal(value.includes("/vtt/"), false, "must not carry a route prefix");
 });
 
+test("every panel has its own page", (t) => {
+  const dom = installDom();
+  t.after(() => dom.restore());
+
+  const paths = PANELS.map((panel) => panelFilePath(panel.file));
+
+  assert.equal(new Set(paths).size, PANELS.length, "two panels share a page");
+  for (const path of paths) {
+    assert.equal(path.startsWith(`Data/modules/${MODULE_ID}/overlay/`), true, path);
+    assert.equal(path.endsWith(".html"), true, path);
+  }
+});
+
 /* -------------------------------------------- */
 /*  Injection                                   */
 /* -------------------------------------------- */
+
+test("each panel gets its own field under its own toggle", (t) => {
+  // All three share a parent, so a lookup that is not scoped per panel finds
+  // whichever was built first and never builds the other two.
+  const { root } = open(t);
+
+  refreshOverlayUrlField(root);
+
+  assert.equal(count(root, ANY_GROUP), PANELS.length);
+  for (const panel of PANELS) {
+    const group = root.querySelector(`${ANY_GROUP}[data-panel="${panel.key}"]`);
+    const toggleGroup = root
+      .querySelector(`input[name="${MODULE_ID}.${panel.setting}"]`)
+      .closest(".form-group");
+    assert.equal(toggleGroup.nextElementSibling === group, true, `${panel.key} is misplaced`);
+  }
+});
+
+test("each panel's field carries that panel's own page", (t) => {
+  const { root } = open(t);
+
+  refreshOverlayUrlField(root);
+
+  for (const panel of PANELS) {
+    assert.equal(
+      root.querySelector(`${ANY_GROUP}[data-panel="${panel.key}"] .obs-overlay-url`).value,
+      panelFilePath(panel.file)
+    );
+  }
+});
+
+test("re-rendering does not stack duplicates of any panel", (t) => {
+  const { root } = open(t);
+
+  refreshOverlayUrlField(root);
+  refreshOverlayUrlField(root);
+  refreshOverlayUrlField(root);
+
+  assert.equal(count(root, ANY_GROUP), PANELS.length);
+});
+
+test("each panel's field follows its own toggle, not the others", (t) => {
+  const { root } = open(t, { checked: false });
+  refreshOverlayUrlField(root);
+
+  const chat = root.querySelector(`input[name="${MODULE_ID}.${SETTINGS.chatEnabled}"]`);
+  chat.checked = true;
+  chat.dispatchEvent(new window.Event("change", { bubbles: true }));
+
+  assert.equal(root.querySelector(`${ANY_GROUP}[data-panel="chat"]`).hidden, false);
+  assert.equal(root.querySelector(`${ANY_GROUP}[data-panel="overlay"]`).hidden, true);
+  assert.equal(root.querySelector(`${ANY_GROUP}[data-panel="combat"]`).hidden, true);
+});
 
 test("the field is inserted directly after the overlay toggle", (t) => {
   const { root } = open(t);
@@ -100,10 +179,12 @@ test("the field carries the path and a copy button", (t) => {
   refreshOverlayUrlField(root);
 
   assert.equal(
-    root.querySelector(".obs-overlay-url").value,
+    root.querySelector(`${GROUP} .obs-overlay-url`).value,
     `Data/modules/${MODULE_ID}/overlay/overlay.html`
   );
-  assert.equal(count(root, "button.obs-overlay-url-copy"), 1);
+  // One per panel — each field copies its own page, not a shared one.
+  assert.equal(count(root, `${GROUP} button.obs-overlay-url-copy`), 1);
+  assert.equal(count(root, `${ANY_GROUP} button.obs-overlay-url-copy`), PANELS.length);
 });
 
 test("the copy button is not a submit button", (t) => {
