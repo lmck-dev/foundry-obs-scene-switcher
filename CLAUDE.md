@@ -227,7 +227,7 @@ npm ci
 npm test          # node --test --test-timeout=5000 "test/**/*.test.js"
 ```
 
-352 tests covering `obs-client.js`, `scene-sync.js`, `override-button.js`,
+366 tests covering `obs-client.js`, `scene-sync.js`, `override-button.js`,
 `character-data.js`, `overlay-feed.js`, `chat-feed.js`, `combat-feed.js`,
 `migrate.js`, the
 settings-window decorations, all three overlay pages and the Handlebars
@@ -344,6 +344,17 @@ debugging. Two rules came out of that, and both are load-bearing:
    the page — which is information, where before it meant any of four things.
 
 When adding a gate, ask how a user will tell it apart from a bug.
+
+**The heartbeat and the pages share the redraw decision, and the split matters.**
+The module must keep re-sending the current payload — that is the only thing
+that refills a Browser Source which reloaded, since the transport is one-way and
+has no handshake. So the *page* is where an identical payload is dropped, in
+`common.js`'s `deliver()`, because only the page knows what it last managed to
+render. Without that, every heartbeat rebuilt the DOM and restarted every
+entrance animation and CSS transition, which on stream read as the panel
+flashing on a five-second timer. `chat.js` additionally tracks which line ids
+were on screen last render and only gives new ones the `is-new` class that
+animates, so one new message does not re-animate the whole feed.
 
 A **Dice So Nice chromakey view** was scoped and deferred (2026-08-03). It
 cannot live on these pages: DSN's renderer only exists inside a real Foundry

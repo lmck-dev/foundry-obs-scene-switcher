@@ -214,7 +214,7 @@ lang/en.json
 
 ## Status / testing
 
-- 358 unit tests run in CI on every push (`npm test`, Node 22). They cover the
+- 366 unit tests run in CI on every push (`npm test`, Node 22). They cover the
   obs-websocket handshake (cross-checked against the spec's example vector),
   every `resolveScene()` branch, the tracker button's DOM injection, the actor
   adapters, all three feeds' privacy gating, the settings-window decorations,
@@ -241,6 +241,12 @@ blank source is never ambiguous:
 Add `?idle=hide` to the source URL to suppress the strip once you go live —
 which needs the URL box rather than the "Local file" tick, as with the other
 query parameters.
+
+The panels redraw only when something actually changes. The module re-sends the
+current state every few seconds so a Browser Source that reloaded refills on its
+own, and each page ignores a payload identical to what it is already showing —
+otherwise every animation restarts on that timer and the panel appears to flash.
+Text is sized to be read on a compressed stream; `&scale=1.25` adjusts it.
 
 ### Diagnostics
 

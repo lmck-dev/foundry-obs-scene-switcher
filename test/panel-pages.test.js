@@ -338,6 +338,93 @@ test("the pages accept the same look-and-feel parameters as the card", (t) => {
 });
 
 /* -------------------------------------------- */
+/*  Not flashing                                */
+/* -------------------------------------------- */
+
+test("an identical payload does not rebuild the page", (t) => {
+  // The module re-sends the same payload every few seconds so a reloaded
+  // Browser Source refills. Rebuilding for it restarted every animation and
+  // transition, which on stream read as the panel flashing on a timer.
+  const dom = chatPage(t);
+  dom.instance.apply(chatPayload([LINE]));
+  const before = dom.root.querySelector(".chat-line");
+
+  dom.instance.apply(chatPayload([LINE]));
+
+  assert.equal(
+    dom.root.querySelector(".chat-line") === before,
+    true,
+    "the node was replaced, so its animation restarted"
+  );
+});
+
+test("the heartbeat still refills a page that has not seen the payload", (t) => {
+  // The skip must be per-page and per-content, never a reason for a freshly
+  // loaded source to stay empty — that is the whole point of the heartbeat.
+  const dom = chatPage(t);
+
+  emitOverlayEvent(dom, "obsSceneSwitcherChat", chatPayload([LINE]));
+
+  assert.equal(count(dom.root, ".chat-line"), 1);
+});
+
+test("a changed payload does rebuild", (t) => {
+  const dom = chatPage(t);
+  dom.instance.apply(chatPayload([LINE]));
+
+  dom.instance.apply(chatPayload([LINE, { ...LINE, id: "m2", text: "new" }]));
+
+  assert.equal(count(dom.root, ".chat-line"), 2);
+});
+
+test("only newly arrived lines animate in", (t) => {
+  // A single new message must not re-animate every line above it.
+  const dom = chatPage(t);
+  dom.instance.apply(chatPayload([LINE]));
+  assert.equal(count(dom.root, ".chat-line.is-new"), 1, "the first line should animate");
+
+  dom.instance.apply(chatPayload([LINE, { ...LINE, id: "m2", text: "new" }]));
+
+  assert.equal(count(dom.root, ".chat-line"), 2);
+  assert.equal(count(dom.root, ".chat-line.is-new"), 1, "only the new line should animate");
+  assert.equal(dom.root.querySelector(".chat-line.is-new").textContent.includes("new"), true);
+});
+
+test("a line that leaves and returns animates again", (t) => {
+  const dom = chatPage(t);
+  dom.instance.apply(chatPayload([LINE]));
+  dom.instance.apply({ v: 1, present: false, lines: [] });
+
+  dom.instance.apply(chatPayload([LINE]));
+
+  assert.equal(count(dom.root, ".chat-line.is-new"), 1);
+});
+
+test("an identical combat payload does not rebuild the tracker", (t) => {
+  const dom = combatPage(t);
+  dom.instance.apply(combatPayload([ROW]));
+  const before = dom.root.querySelector(".combat-row");
+
+  dom.instance.apply(combatPayload([ROW]));
+
+  assert.equal(dom.root.querySelector(".combat-row") === before, true);
+});
+
+test("a turn passing does rebuild the tracker", (t) => {
+  const dom = combatPage(t);
+  dom.instance.apply(combatPayload([ROW, { ...ROW, id: "c2", active: true }]));
+
+  dom.instance.apply(combatPayload([{ ...ROW, active: true }, { ...ROW, id: "c2" }]));
+
+  assert.equal(count(dom.root, ".combat-row.active"), 1);
+  assert.equal(
+    dom.root.querySelector(".combat-row").classList.contains("active"),
+    true,
+    "the highlight did not move"
+  );
+});
+
+/* -------------------------------------------- */
 /*  Proof of life                               */
 /* -------------------------------------------- */
 

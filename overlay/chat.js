@@ -16,29 +16,42 @@
   var DEFAULT_EVENT = "obsSceneSwitcherChat";
   var ROOT_ID = "obs-chat-root";
 
+  /** Ids rendered last time, so only genuinely new lines animate in. */
+  var previousIds = Object.create(null);
+
   /**
    * Render a payload into the feed.
    *
    * The whole list is rebuilt from each payload rather than diffed. The feed is
-   * a handful of lines and arrives whole on every heartbeat, so there is no
-   * state here to get out of step with the module's.
+   * a handful of lines and arrives whole, so there is no state here to get out
+   * of step with the module's.
+   *
+   * The entrance animation is the one thing that cannot be rebuilt blindly: a
+   * fresh node always replays it, so a single new message would re-animate
+   * every line above it. Only ids that were not on screen last time get the
+   * class that animates.
    */
   function render(root, payload) {
     var lines = payload && payload.present === true && Array.isArray(payload.lines)
       ? payload.lines
       : [];
 
+    var seen = Object.create(null);
     var list = root.querySelector(".chat-lines");
     C.clear(list);
     lines.forEach(function (line) {
-      list.appendChild(renderLine(line));
+      var id = String(line.id);
+      list.appendChild(renderLine(line, !previousIds[id]));
+      seen[id] = true;
     });
+    previousIds = seen;
 
     root.dataset.state = lines.length ? "shown" : "empty";
   }
 
-  function renderLine(line) {
+  function renderLine(line, isNew) {
     var node = C.el("div", "chat-line");
+    if (isNew) node.classList.add("is-new");
     if (line.category) node.dataset.category = String(line.category);
 
     var avatar = C.image(line.img, "chat-avatar");

@@ -98,8 +98,28 @@
     // "something was delivered" rather than "an event listener fired" — the
     // handle's own apply() is a delivery too, and a test driving it is
     // exercising the same thing OBS does.
+    var lastRendered = null;
     var deliver = function (payload) {
       root.dataset.live = "yes";
+
+      // The module re-sends the current payload every few seconds, so that a
+      // Browser Source which reloaded refills without needing a handshake. A
+      // page that already holds exactly that content has nothing to do, and
+      // rebuilding it restarts every entrance animation and CSS transition on
+      // it — which reads on stream as the whole panel flashing on a timer.
+      //
+      // Comparing here rather than in the module is deliberate: the module
+      // cannot know what any given page last managed to render, and the
+      // heartbeat has to keep arriving for the reload case to work at all.
+      var serialised;
+      try {
+        serialised = JSON.stringify(payload);
+      } catch (err) {
+        serialised = null; // unserialisable: always render, never skip
+      }
+      if (serialised !== null && serialised === lastRendered) return;
+      lastRendered = serialised;
+
       render(root, payload);
     };
 

@@ -149,6 +149,22 @@ test("every panel's toggle has a name and a hint in Settings", () => {
   }
 });
 
+test("the overlay pages stay legible at streaming sizes", () => {
+  // A floor, not a pinned value: the exact size is a taste decision and should
+  // be free to move, but these are read from across a room on a compressed
+  // video stream, and the first version shipped too small to read.
+  for (const page of ["overlay.html", "chat.html", "combat.html"]) {
+    const source = readFileSync(new URL(`../overlay/${page}`, import.meta.url), "utf8");
+    const base = source.match(/font-size:\s*calc\((\d+(?:\.\d+)?)px\s*\*\s*var\(--scale\)\)/);
+
+    assert.ok(base, `${page} has no scalable base font size`);
+    assert.ok(
+      Number(base[1]) >= 16,
+      `${page} sets a ${base[1]}px base, which is too small to read on a stream`
+    );
+  }
+});
+
 test("both stream panels are registered on by default", () => {
   // Settings registration only ever runs inside Foundry, so nothing else can
   // catch this. It matters because every previous "the panel is blank" report
