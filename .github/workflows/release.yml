@@ -44,7 +44,7 @@ jobs:
         run: |
           zip -r module.zip \
             module.json \
-            scripts applications templates styles lang \
+            scripts applications templates styles lang overlay \
             README.md LICENSE
 
       - name: Publish release with assets

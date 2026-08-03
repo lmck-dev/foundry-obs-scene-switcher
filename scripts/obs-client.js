@@ -295,6 +295,22 @@ export class OBSClient {
     return this.request("SetCurrentProgramScene", { sceneName });
   }
 
+  /**
+   * Emit a CustomEvent into every Browser Source running in OBS.
+   *
+   * obs-browser registers itself with obs-websocket as the `obs-browser`
+   * vendor; its `emit_event` request dispatches `event_name` verbatim on the
+   * page's `window`, with `event_data` arriving as `event.detail`. That is the
+   * only channel from here into a Browser Source — the page cannot call back.
+   */
+  async emitBrowserEvent(eventName, eventData = {}) {
+    return this.request("CallVendorRequest", {
+      vendorName: "obs-browser",
+      requestType: "emit_event",
+      requestData: { event_name: eventName, event_data: eventData }
+    });
+  }
+
   /** Fetch the list of scene names, ordered as OBS returns them. */
   async getSceneList() {
     const data = await this.request("GetSceneList");

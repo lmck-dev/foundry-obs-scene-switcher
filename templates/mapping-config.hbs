@@ -37,6 +37,7 @@
   <fieldset>
     <legend>{{localize "foundry-obs-scene-switcher.config.actorMappings"}}</legend>
     <p class="hint">{{localize "foundry-obs-scene-switcher.config.actorMappingsHint"}}</p>
+    <p class="hint">{{localize "foundry-obs-scene-switcher.config.cardColumnHint"}}</p>
 
     {{#if actors.length}}
     <div class="actor-search-bar">
@@ -44,6 +45,12 @@
       <input type="search" class="actor-search" autocomplete="off"
              placeholder="{{localize 'foundry-obs-scene-switcher.config.searchPlaceholder'}}"
              aria-label="{{localize 'foundry-obs-scene-switcher.config.searchPlaceholder'}}" />
+    </div>
+    <div class="actor-list-head">
+      <span></span>
+      <span></span>
+      <span>{{localize "foundry-obs-scene-switcher.config.columnScene"}}</span>
+      <span>{{localize "foundry-obs-scene-switcher.config.columnCard"}}</span>
     </div>
     <div class="actor-list">
       {{#each actors}}
@@ -53,6 +60,14 @@
         <input type="text" name="mapping.{{this.id}}" value="{{this.scene}}"
                list="{{#if ../hasSceneOptions}}obs-scene-names{{/if}}"
                placeholder="{{localize 'foundry-obs-scene-switcher.config.noMapping'}}" />
+        {{#if this.alwaysShown}}
+        <i class="fas fa-user actor-card-always"
+           title="{{localize 'foundry-obs-scene-switcher.config.cardAlways'}}"></i>
+        {{else}}
+        <input type="checkbox" class="actor-card" name="card.{{this.id}}"
+               {{checked this.card}}
+               aria-label="{{localize 'foundry-obs-scene-switcher.config.columnCard'}}: {{this.name}}" />
+        {{/if}}
       </div>
       {{/each}}
     </div>
