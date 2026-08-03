@@ -55,8 +55,6 @@
   .chat-root[data-anchor="bottom"] { align-items: flex-end; }
   .chat-root[data-anchor="top"]    { align-items: flex-start; }
 
-  .chat-root[data-state="empty"] { opacity: 0; }
-  .chat-root[data-state="shown"] { opacity: 1; }
 
   .chat-lines {
     width: 100%;
@@ -158,6 +156,55 @@
     font-variant-numeric: tabular-nums;
   }
 
+
+  /* Proof of life.
+     A panel with nothing to show used to be fully transparent, which is
+     indistinguishable from a page that never loaded, a Browser Source pointed
+     at the wrong file, or a module that is not sending. It is now always
+     visibly *something*, and says which of those it is: `data-live` is set to
+     "yes" by common.js the first time any payload arrives. Add ?idle=hide to
+     the source URL to suppress it once you are happy and going live. */
+  .idle {
+    display: none;
+    align-items: center;
+    gap: 0.5em;
+    align-self: flex-start;
+    padding: 0.35em 0.7em;
+    border: 1px dashed rgba(255, 255, 255, 0.22);
+    border-radius: 0.4em;
+    background: rgba(12, 14, 18, 0.55);
+    color: var(--muted);
+    font-size: 0.72em;
+    letter-spacing: 0.04em;
+    white-space: nowrap;
+  }
+
+  [data-state="empty"][data-idle="show"] .idle { display: inline-flex; }
+
+  .idle-dot {
+    width: 0.5em;
+    height: 0.5em;
+    border-radius: 50%;
+    background: #e0b84a;
+    box-shadow: 0 0 0.5em rgba(224, 184, 74, 0.8);
+    animation: obs-idle-pulse 1.6s ease-in-out infinite;
+  }
+
+  [data-live="yes"] .idle-dot {
+    background: #63c777;
+    box-shadow: 0 0 0.5em rgba(99, 199, 119, 0.8);
+  }
+
+  @keyframes obs-idle-pulse {
+    0%, 100% { opacity: 1; }
+    50%      { opacity: 0.35; }
+  }
+
+  /* One line or the other, never both. */
+  .idle-live { display: none; }
+  [data-live="yes"] .idle-waiting { display: none; }
+  [data-live="yes"] .idle-live { display: inline; }
+
   [hidden] { display: none !important; }
 
   @media (prefers-reduced-motion: reduce) {
@@ -169,6 +216,11 @@
 <body>
   <div id="obs-chat-root" class="chat-root" data-state="empty" data-anchor="bottom">
     <div class="chat-lines"></div>
+    <div class="idle">
+      <span class="idle-dot"></span>
+      <span class="idle-waiting">Chat feed — waiting for Foundry…</span>
+      <span class="idle-live">Chat feed — no messages yet</span>
+    </div>
   </div>
   <script src="common.js"></script>
   <script src="chat.js"></script>

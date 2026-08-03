@@ -328,5 +328,74 @@ test("the pages accept the same look-and-feel parameters as the card", (t) => {
 
   const opts = dom.overlay.readOptions("?event=x&accent=%23ff0000&scale=1.5&anchor=top");
 
-  assert.deepEqual(opts, { event: "x", accent: "#ff0000", scale: 1.5, anchor: "top" });
+  assert.deepEqual(opts, {
+    event: "x",
+    accent: "#ff0000",
+    scale: 1.5,
+    anchor: "top",
+    idle: "show"
+  });
+});
+
+/* -------------------------------------------- */
+/*  Proof of life                               */
+/* -------------------------------------------- */
+
+test("a page that has heard nothing from Foundry says so", (t) => {
+  // The distinction this whole state exists for: an empty panel and a panel
+  // that never loaded, or is pointed at the wrong file, or is not being sent
+  // to, used to look identical — fully transparent.
+  for (const panel of ["chat", "combat"]) {
+    const dom = loadOverlayPage(panel);
+    t.after(() => dom.restore());
+
+    assert.equal(dom.root.dataset.live, "no", `${panel} claimed to be live`);
+    assert.equal(dom.root.dataset.state, "empty");
+    assert.equal(count(dom.root, ".idle-waiting"), 1, `${panel} has no waiting line`);
+  }
+});
+
+test("one payload is enough to mark a page live, even an empty one", (t) => {
+  const dom = chatPage(t);
+
+  emitOverlayEvent(dom, "obsSceneSwitcherChat", { v: 1, present: false, lines: [] });
+
+  assert.equal(dom.root.dataset.live, "yes");
+  assert.equal(dom.root.dataset.state, "empty");
+});
+
+test("a page stays marked live once content goes away again", (t) => {
+  // Combat ending must read as "no encounter", not as "not receiving".
+  const dom = combatPage(t);
+  dom.instance.apply(combatPayload([ROW]));
+
+  dom.instance.apply({ v: 1, present: false, combatants: [] });
+
+  assert.equal(dom.root.dataset.live, "yes");
+  assert.equal(dom.root.dataset.state, "empty");
+});
+
+test("the idle strip shows by default and hides on request", (t) => {
+  // Visible while you are setting up; suppressed with ?idle=hide once live.
+  const dom = chatPage(t);
+  assert.equal(dom.root.dataset.idle, "show");
+
+  const hidden = dom.overlay.mount(dom.root, {
+    ...dom.overlay.readOptions(""),
+    idle: "hide"
+  });
+  t.after(() => hidden.destroy());
+
+  assert.equal(dom.root.dataset.idle, "hide");
+});
+
+test("both pages carry both idle lines, so either state can be shown", (t) => {
+  for (const panel of ["chat", "combat"]) {
+    const dom = loadOverlayPage(panel);
+    t.after(() => dom.restore());
+
+    assert.equal(count(dom.root, ".idle-waiting"), 1, `${panel} missing the waiting line`);
+    assert.equal(count(dom.root, ".idle-live"), 1, `${panel} missing the live line`);
+    assert.equal(count(dom.root, ".idle-dot"), 1, `${panel} missing the status dot`);
+  }
 });

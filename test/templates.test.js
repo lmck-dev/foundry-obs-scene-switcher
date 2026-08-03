@@ -149,6 +149,26 @@ test("every panel's toggle has a name and a hint in Settings", () => {
   }
 });
 
+test("both stream panels are registered on by default", () => {
+  // Settings registration only ever runs inside Foundry, so nothing else can
+  // catch this. It matters because every previous "the panel is blank" report
+  // in this module traced back to a default that hid something: a panel with
+  // no Browser Source pointed at it is invisible to everyone, so defaulting
+  // off protected nothing and cost a step that looked exactly like a fault.
+  const main = readFileSync(new URL("../scripts/main.js", import.meta.url), "utf8");
+
+  for (const setting of ["chatEnabled", "combatEnabled"]) {
+    const start = main.indexOf(`SETTINGS.${setting}`);
+    assert.ok(start > -1, `${setting} is never registered`);
+    const block = main.slice(start, main.indexOf("});", start));
+    assert.match(
+      block,
+      /default:\s*true/,
+      `${setting} must register on by default, or the panel arrives blank`
+    );
+  }
+});
+
 test("the overlay settings window scrolls rather than running off the screen", () => {
   // It renders with `height: "auto"`, so it grows with its content until the
   // lower fieldsets are below the bottom of the screen and cannot be reached —

@@ -324,10 +324,26 @@ transport or page is broken" from "a gate is closed". Read from the *live*
 module instances — a dynamic `import()` gets a second copy with its own empty
 chat buffer and reports the wrong thing.
 
-**The recurring failure mode in this module is a panel that is correctly empty
+**The recurring failure mode in this module was a panel that is correctly empty
 being indistinguishable from a broken one.** Three toggles, a category gate and
-a per-NPC gate each produced that in turn. Prefer defaults that show something,
-and when adding a gate, ask how a user will tell it apart from a bug.
+a per-NPC gate each produced it in turn, across three separate rounds of
+debugging. Two rules came out of that, and both are load-bearing:
+
+1. **Defaults show things.** Both panels register `default: true` and every chat
+   category defaults on. A panel with no Browser Source pointed at it is
+   invisible to everyone, so defaulting off protected nothing. Guarded by a
+   static test in `test/templates.test.js`, because settings registration only
+   runs inside Foundry.
+2. **A live page is never fully blank.** `common.js` sets `data-live="no"` on
+   mount and `"yes"` on the first delivered payload — via a single `deliver()`
+   that both the event handler and the handle's `apply()` go through, so "live"
+   means *a payload arrived* rather than *a listener fired*. The pages render an
+   amber "waiting for Foundry…" line in the first state and a green "no messages
+   yet" / "no encounter" in the second. `?idle=hide` suppresses it for going
+   live. Nothing at all on screen now means the Browser Source is not loading
+   the page — which is information, where before it meant any of four things.
+
+When adding a gate, ask how a user will tell it apart from a bug.
 
 A **Dice So Nice chromakey view** was scoped and deferred (2026-08-03). It
 cannot live on these pages: DSN's renderer only exists inside a real Foundry

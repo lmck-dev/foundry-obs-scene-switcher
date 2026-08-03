@@ -126,8 +126,8 @@ portrait, name, and usually a health bar — rather than failing.
 A second Browser Source showing the tail of the chat log — who said it, what
 they said, and dice results with their formula and total.
 
-1. Tick **Stream Chat Feed** in the module settings; the file path appears
-   underneath with a copy button.
+1. **Stream Chat Feed** is on by default in the module settings; the file path
+   appears underneath it with a copy button.
 2. In OBS: **Sources → + → Browser**, tick **Local file**, browse to
    `overlay/chat.html`. Around **380 × 500** suits a column down one side.
 
@@ -160,7 +160,7 @@ no longer qualifies. Deleting a message in Foundry retracts it too.
 A third Browser Source showing the turn order, with whoever is up highlighted.
 It hides itself when combat ends.
 
-1. Tick **Stream Combat Tracker**; the file path appears underneath.
+1. **Stream Combat Tracker** is on by default; the file path appears underneath.
 2. In OBS: **Sources → + → Browser**, **Local file**, `overlay/combat.html`.
    Around **320 × 420** suits a side column.
 
@@ -214,7 +214,7 @@ lang/en.json
 
 ## Status / testing
 
-- 352 unit tests run in CI on every push (`npm test`, Node 22). They cover the
+- 358 unit tests run in CI on every push (`npm test`, Node 22). They cover the
   obs-websocket handshake (cross-checked against the spec's example vector),
   every `resolveScene()` branch, the tracker button's DOM injection, the actor
   adapters, all three feeds' privacy gating, the settings-window decorations,
@@ -226,6 +226,21 @@ lang/en.json
   the panels were reached by a test payload sent from `selfTest()` below.
 - **The chat feed and combat tracker have not yet been confirmed showing real
   game data on a live stream.**
+
+### Proof of life
+
+Both panels always show **something** while they have nothing to display, so a
+blank source is never ambiguous:
+
+| What you see | What it means |
+| --- | --- |
+| Amber dot, "waiting for Foundry…" | The page loaded but has received nothing. Check the module is on and OBS is connected. |
+| Green dot, "no messages yet" / "no encounter" | Working and receiving; there is genuinely nothing to show. |
+| Nothing at all | The Browser Source is not loading the page. Check the file path. |
+
+Add `?idle=hide` to the source URL to suppress the strip once you go live —
+which needs the URL box rather than the "Local file" tick, as with the other
+query parameters.
 
 ### Diagnostics
 

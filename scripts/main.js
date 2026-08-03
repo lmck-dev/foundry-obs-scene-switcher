@@ -191,7 +191,10 @@ function registerSettings() {
     scope: "client",
     config: true,
     type: Boolean,
-    default: false,
+    // On by default. A panel nobody has pointed a Browser Source at is
+    // invisible to everyone, so defaulting off protected nothing and cost a
+    // step that looked, when missed, exactly like the feature being broken.
+    default: true,
     onChange: () => {
       // Seeding covers both directions: switching on fills the panel from the
       // log that already exists rather than waiting for the next message, and
@@ -230,7 +233,7 @@ function registerSettings() {
     scope: "client",
     config: true,
     type: Boolean,
-    default: false,
+    default: true,
     onChange: () => pushCombat({ force: true })
   });
 

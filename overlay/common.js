@@ -60,7 +60,9 @@
       event: params.get("event") || defaultEvent,
       accent: params.get("accent") || null,
       scale: parseFloat(params.get("scale")) || null,
-      anchor: params.get("anchor") === "top" ? "top" : "bottom"
+      anchor: params.get("anchor") === "top" ? "top" : "bottom",
+      // Proof of life is on unless explicitly suppressed for going live.
+      idle: params.get("idle") === "hide" ? "hide" : "show"
     };
   }
 
@@ -69,6 +71,7 @@
     if (options.accent) root.style.setProperty("--accent", options.accent);
     if (options.scale) root.style.setProperty("--scale", String(options.scale));
     root.dataset.anchor = options.anchor;
+    root.dataset.idle = options.idle;
   }
 
   /**
@@ -83,18 +86,31 @@
       options ||
       readOptions(typeof location !== "undefined" ? location.search : "", defaultEvent);
     applyOptions(root, opts);
+
+    // Has anything at all arrived from Foundry? This is the distinction that
+    // makes an empty panel readable: "nothing to show" and "not receiving" look
+    // identical on screen otherwise, and telling them apart by eye cost a whole
+    // debugging session. The pages render a different idle line for each.
+    root.dataset.live = "no";
     render(root, null);
 
+    // Every route a payload can arrive by goes through here, so "live" means
+    // "something was delivered" rather than "an event listener fired" — the
+    // handle's own apply() is a delivery too, and a test driving it is
+    // exercising the same thing OBS does.
+    var deliver = function (payload) {
+      root.dataset.live = "yes";
+      render(root, payload);
+    };
+
     var handler = function (event) {
-      render(root, event.detail);
+      deliver(event.detail);
     };
     window.addEventListener(opts.event, handler);
 
     return {
       eventName: opts.event,
-      apply: function (payload) {
-        render(root, payload);
-      },
+      apply: deliver,
       destroy: function () {
         window.removeEventListener(opts.event, handler);
       }
